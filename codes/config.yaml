@@ -1,0 +1,17 @@
+BESS_datfile: "ec_BESS.dat"
+wind_datfile: "ec_wind.dat"
+market_datfile: "market.dat"
+
+PROB: ["ec"]
+probl: 'ec'
+famscen: "FTC_10_2023_12"
+hydro: true
+n_days: 1
+project_root: "~/secoem"   # or leave null to auto-detect
+
+pathdem: "data/demand/"
+
+
+resfile: "results_log.res"
+timefileFull: "time.txt"
+numscenfile: "numscen.txt"
