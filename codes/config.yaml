@@ -8,7 +8,7 @@ MODE: 'multiscen'
 PROB: ["ec"]
 probl: 'ec'
 famscen: "FTC_202407_202412_c92_sc100_DA"
-include_h2: true
+include_h2: false
 n_days: 1
 project_root: "~/secoem" 
 
@@ -18,3 +18,14 @@ pathdem_h2: "data/demand_h2/"
 resfile: "results_log.res"
 timefileFull: "time.txt"
 numscenfile: "numscen.txt"
+
+# Solver options
+solver:
+  name: "gurobi"
+  MIPGap: 0.05
+  Threads: 4
+  DisplayInterval: 2
+  Presolve: 0
+  TimeLimit: 3600
+  Seed: 2
+  Method: 3

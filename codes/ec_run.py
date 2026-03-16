@@ -656,16 +656,11 @@ for sim in SIMS:
             res_log.write(f"iFC_off_ini: {value(instance.iFC_off_ini)}\n")
 
     # SOLVER OPTIONS
-    solver = SolverFactory("gurobi")  # Use gurobi solver
-    
-    # Set Gurobi options equivalent to CPLEX settings
-    solver.options["MIPGap"] = 0.05      # Equivalent to mipgap in CPLEX
-    solver.options["Threads"] = 4        # Use 4 threads
-    solver.options["DisplayInterval"] = 2  # Similar to mipdisplay in CPLEX
-    solver.options["Presolve"] = 0       # Equivalent to mipbasis (no presolve)
-    solver.options["TimeLimit"] = 3600   # No direct equivalent for "timing", but setting a time limit
-    solver.options["Seed"] = 2           # Equivalent to clocktype = 2 (deterministic runs)
-    solver.options["Method"] = 3  # Dual simplex (like CPLEX default)
+    solver_cfg = cfg.get("solver", {})
+    solver = SolverFactory(solver_cfg.pop("name", "gurobi"))
+    for key, val in solver_cfg.items():
+        solver.options[key] = val
+
 
     print("Solving the optimization problem...")
     start_time = time.time()
