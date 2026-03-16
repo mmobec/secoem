@@ -112,7 +112,10 @@ model.SOCmin = pyo.Param(within=pyo.NonNegativeReals)  # BESS minimum SOC
 model.SOCmax = pyo.Param(within=pyo.NonNegativeReals)  # BESS maximum SOC
 model.SOCini = pyo.Param(within=pyo.NonNegativeReals, mutable=True)  #  !!! BESS initial SOC It's mutable because every day has to be re-initialized
 model.SOCfin = pyo.Param(within=pyo.NonNegativeReals)  # BESS final SOC
-
+model.B_sp_cost = pyo.Param(within=pyo.NonNegativeReals)            # BESS specific replacement cost (€/MWh)
+model.cyc_max = pyo.Param(within=pyo.NonNegativeReals)            # Total number of cycles in BESS lifetime (cycles)
+# Computing BESS degradation cost
+model.C_BESS = model.B_sp_cost/model.cyc_max              # cost per unit of battery degradation (€ / (MWh x cycle))
 # ----------------------------------------------------------
 # 8. Market Participation
 # ----------------------------------------------------------
@@ -213,7 +216,7 @@ model.obj_IB_income = pyo.Param(model.PROB, model.SIMS, mutable=True, default=0.
 model.obj_IB_costs = pyo.Param(model.PROB, model.SIMS, mutable=True, default=0.0)
 model.obj_IB_net = pyo.Param(model.PROB, model.SIMS, mutable=True, default=0.0)
 model.obj_FD_costs = pyo.Param(model.PROB, model.SIMS, mutable=True, default=0.0)
-
+model.obj_BESS_costs = pyo.Param(model.PROB, model.SIMS, mutable=True, default=0.0)
 # # Wind Uncertainty Parameters
 # model.meanmax = pyo.Param(within=pyo.Reals, mutable=True, default=0.0)
 # model.meanmin = pyo.Param(within=pyo.Reals, mutable=True, default=0.0)
@@ -276,7 +279,9 @@ def EECSW_rule(m):
         sum( m.Prob[s] * m.lI[i, t, s] * m.eIM[i, t, s] for s in m.S for i in m.IMT[t] ) +
         sum( m.Prob[s] * m.lPIB[t, s] * m.pIB_p[t, s] for s in m.S ) -
         sum( m.Prob[s] * m.lNIB[t, s] * m.pIB_m[t, s] for s in m.S ) -
-        sum( m.Prob[s] * m.C_FD * (m.var_afd_p[t, s] + m.var_afd_m[t, s]) for s in m.S )
+        sum( m.Prob[s] * m.C_FD * (m.var_afd_p[t, s] + m.var_afd_m[t, s]) for s in m.S ) -
+        sum( m.Prob[s] * ((m.dV[t, s] + m.cV[t, s])/(2 * m.Emax)) * (m.B_sp_cost * m.Emax / m.cyc_max) for s in m.S)
+
         for t in m.T
     )
 model.EECSW = pyo.Objective(rule=EECSW_rule, sense=pyo.maximize)

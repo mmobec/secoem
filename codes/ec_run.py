@@ -24,27 +24,38 @@ import yaml
 # ---------------------------------------------------------------------
 # Read in configuration from 
 # ---------------------------------------------------------------------
+
+# Run mode options:
+#   'observed'  -> perfect foresight using ScenO
+#   'forecasted'-> single forecast scenario using ScenF
+#   'expected'  -> using aggregated expected scenario from Scen0 using ScenE
+#   'multiscen' -> full tree simulation using Scen0 (default)
+
+
 config_path = Path(__file__).parent / "config.yaml"
 with open(config_path) as f:
     cfg = yaml.safe_load(f)
 
+MODE = cfg['MODE']
+
 BESS_datfile   = cfg["BESS_datfile"]
 wind_datfile   = cfg["wind_datfile"]
 market_datfile = cfg["market_datfile"]
-
+hydrogen_datfile = cfg["hydrogen_datfile"]
 PROB  = cfg["PROB"]
 probl = cfg["probl"]
 
 project_root = Path(cfg["project_root"]).expanduser() 
 
 famscen = cfg["famscen"]
-hydro   = cfg["hydro"]
+include_h2   = cfg["include_h2"]
 n_days  = cfg["n_days"]
 
 SIMS = [f"{i:03d}" for i in range(1, n_days + 1)]  
 
 pathscen = f"scenarios/{famscen}/"
 pathdem  = cfg["pathdem"]
+pathdem_h2 = cfg["pathdem_h2"]
 pathres       = None   # set inside loop
 pathmarketres = None   # set inside loop
 
@@ -60,20 +71,34 @@ print("\n########################")
 print(f"#### Problem {probl}")
 print("########################\n")
 
-obj_results = {key: {} for key in [
-    "obj_fun", "obj_DA_income", "obj_RM_income", "obj_IM_income",
-    "obj_IB_income", "obj_IB_costs", "obj_IB_net", "obj_FD_costs"
-]}
 
 solve_time = {}
 n_scenarios = {}
 
 # load the model, with or without hydrogen
-if hydro:
+if include_h2:
     module_name = f"models.ec_hydrogen_model"
 else:
     module_name = f"models.ec_model"
 abstract_model = importlib.import_module(module_name).model
+
+# obj function keys:
+if include_h2:
+    obj_results = {key: {} for key in [
+    "obj_fun", "obj_DA_income", "obj_RM_income", "obj_IM_income",
+    "obj_IB_income", "obj_H2_income", "obj_H2_DEM", "obj_IB_costs", "obj_IB_net", "obj_FD_costs", "obj_BESS_costs",
+    "obj_wat_costs", "obj_warm_st_costs", "obj_cold_st_costs", "obj_deg_EL_costs",
+    "obj_warm_st_costs_FC", "obj_cold_st_costs_FC", "obj_deg_FC_costs"
+]}
+else:
+    obj_results = {key: {} for key in [
+    "obj_fun", "obj_DA_income", "obj_RM_income", "obj_IM_income", "obj_BESS_costs",
+    "obj_IB_income", "obj_IB_costs", "obj_IB_net", "obj_FD_costs"
+]}
+
+
+solve_time = {}
+n_scenarios = {}
 
 # ---------------------------------------------------------------------
 # 3) For each sim in SIMS, replicate the logic in ec.run
@@ -101,50 +126,76 @@ for sim in SIMS:
     print(f"demfile path   = {pathdem}{demfile}")
     print(f"pathres        = {pathres}")
 
+    demfile_h2 = f"demand_h2-{sim}.dat"
+    print(f"demfile_h2 path   = {pathdem_h2}{demfile_h2}")
+    print(f"pathres        = {pathres}")
+    
     scenario_data = DataPortal()
     # Load the "base" data 
     scenario_data.load(filename=os.path.join(project_root, "data", market_datfile),  model=abstract_model)
     scenario_data.load(filename=os.path.join(project_root, "data", BESS_datfile),    model=abstract_model)
     scenario_data.load(filename=os.path.join(project_root, "data", wind_datfile),    model=abstract_model)
+    if include_h2:
+        scenario_data.load(filename=os.path.join(project_root, "data", hydrogen_datfile), model=abstract_model)
 
     # Then load scenario & demand data
     scenario_data.load(filename=os.path.join(project_root, pathscen, scenfile), model=abstract_model)
     scenario_data.load(filename=os.path.join(project_root, pathdem,  demfile),  model=abstract_model)
+    if include_h2:
+        scenario_data.load(filename=os.path.join(project_root, pathdem_h2,  demfile_h2),  model=abstract_model)
     print(f"\nT = {scenario_data['nT']}, nS = {scenario_data['nS']}, nIM = {scenario_data['nIM']}")
     
     "Before creating the instance"
     # Some Data Preprocess needed before creating the instance because these values are used to build sets in model.py, so they must be defined before creating the instance
-    
-    ### S and Prob allocation (S is used in a lot of sets definition in ec_model.py, so it must be known before creating the instance, prob is used in the objective function)
-    Prob0_raw = scenario_data.data().get("Prob0", {})  # Extract raw probabilities
-    # Compute number of preserved scenarios BEFORE creating the instance
-    S_preserved = [s for s in Prob0_raw if Prob0_raw[s] > 0]
-    Prob_preserved = {s: Prob0_raw[s] for s in S_preserved}
-    print(f"Probabilities at Day {sim}: {Prob_preserved}")
-    print(f"Preserved Scenarios (S): {S_preserved}")
-    print(f"Sum of Probabilities: {sum(Prob_preserved.values())}")
-    # Inject `S_preserved` and `Prob_preserved` into `scenario_data`
-    scenario_data.data()["S"] = {None: S_preserved}  # Ensure correct S
-    scenario_data.data()["Prob"] = Prob_preserved  # Assign Probabilities correctly
-    
-    ### lD allocation (necessary to define Ssd set in ec_model.py which is necessary to build bidding curves)
-    # Scen values are needed to define lD values
-    Scen0_raw = scenario_data.data().get("Scen0", {})  # Extract full scenario data
-    # Compute preserved scenarios BEFORE creating the instance
-    Scen_preserved = {}
-    nRV_value = sum(scenario_data.data()["nRVSG"].values())
-    # Only keep `Scen0` values that belong to preserved scenarios
-    for rv in range(1, nRV_value + 1):  # Loop over random variables
-        for s in S_preserved:
-            Scen_preserved[(rv, s)] = Scen0_raw.get((rv, s), 0.0)  # Default to 0.0 if missing
-    # Inject preserved `Scen` values before `create_instance()`
-    scenario_data.data()["Scen"] = Scen_preserved
-    # Extract `lD` values
+    Prob0_raw = scenario_data.data().get("Prob0", {})
+    Scen0_raw = scenario_data.data().get("Scen0", {})
+    ScenF_raw = scenario_data.data().get("ScenF", {})
+    ScenO_raw = scenario_data.data().get("ScenO", {})
+
+    # Scenario selection
+    if MODE == 'observed':
+        s_id = 1
+        scenario_data.data()['S']    = {None: [s_id]}
+        scenario_data.data()['Prob'] = {s_id: 1.0}
+        Scen_preserved = { (rv, s_id): val for rv, val in ScenO_raw.items() }
+        scenario_data.data()['Scen'] = Scen_preserved
+        print("Mode=observed → using ScenO (perfect foresight)")
+
+    elif MODE == 'forecasted':
+        s_id = 1
+        scenario_data.data()['S']    = {None: [s_id]}
+        scenario_data.data()['Prob'] = {s_id: 1.0}
+        Scen_preserved = { (rv, s_id): val for rv, val in ScenF_raw.items() }
+        scenario_data.data()['Scen'] = Scen_preserved
+        print("Mode=forecasted → using ScenF (forecast)")
+
+    elif MODE == 'expected':
+        # Compute and use the expected-value scenario from the scenario tree Scen0
+        s_id = 1
+        # Build expected scenario by averaging across all tree branches
+        ScenE = {}
+        for rv in set(rv for (rv, _) in Scen0_raw.keys()):
+            ScenE[rv] = sum(Prob0_raw[s] * Scen0_raw.get((rv, s), 0.0) for s in Prob0_raw)
+        scenario_data.data()['S']    = {None: [s_id]}
+        scenario_data.data()['Prob'] = {s_id: 1.0}
+        Scen_preserved = { (rv, s_id): val for rv, val in ScenE.items() }
+        scenario_data.data()['Scen'] = Scen_preserved
+        print("Mode=expected → using aggregated expected scenario from Scen0")
+
+    else:
+        S_preserved = [s for s, p in Prob0_raw.items() if p > 0]
+        scenario_data.data()['S']    = {None: S_preserved}
+        scenario_data.data()['Prob'] = {s: Prob0_raw[s] for s in S_preserved}
+        Scen_preserved = { (rv, s): Scen0_raw[(rv, s)] for (rv, s) in Scen0_raw.keys() if s in S_preserved }
+        scenario_data.data()['Scen'] = Scen_preserved
+        print(f"Mode=multiscen → using Scen0 with scenarios {S_preserved}")
+
+    # lD allocation
     lD_preserved = {}
-    for t in range(1, scenario_data["nT"] + 1):  # Iterate over T
-        for s in S_preserved:  # Only for preserved scenarios
-            lD_preserved[(t, s)] = scenario_data.data().get("Scen", {}).get((t, s), 0.0)  # Default to 0.0 if missing
-    scenario_data.data()["lD"] = lD_preserved  # Assign `lD` values
+    for t in range(1, scenario_data['nT']+1):
+        for s in scenario_data.data()['S'][None]:
+            lD_preserved[(t, s)] = scenario_data.data()['Scen'].get((t, s), 0.0)
+    scenario_data.data()['lD'] = lD_preserved
 
     "Instance creation"
     instance = abstract_model.create_instance(scenario_data)
@@ -155,7 +206,7 @@ for sim in SIMS:
     print(f"T size: {len(list(instance.T))}")  # Should be 24
     print(f"S size: {len(list(instance.S))}")  # Should be 10
     
-    "After creating the instance but before running the solver other parameters must be allocated"
+    "After creating the instance but before running the solver other parameters must be allocated"                                                  
     # Compute scenario cluster (c)
     c_filtered = {}
     
@@ -169,11 +220,11 @@ for sim in SIMS:
     # Compute Expected Scenario (ScenE)
     ScenE_dict = {}
     
-    for rv in range(1, value(instance.nRV) + 1):  # Loop over all random variables
-        ScenE_dict[rv] = sum(value(instance.Prob0[s_]) * value(instance.Scen0[rv, s_]) for s_ in instance.S0)
-    # Store into Pyomo model (ScenE is mutable, so we can assign values)
-    for rv, val in ScenE_dict.items():
-        instance.ScenE[rv] = val
+    # for rv in range(1, value(instance.nRV) + 1):  # Loop over all random variables
+    #     ScenE_dict[rv] = sum(value(instance.Prob0[s_]) * value(instance.Scen0[rv, s_]) for s_ in instance.S0)
+    # # Store into Pyomo model (ScenE is mutable, so we can assign values)
+    # for rv, val in ScenE_dict.items():
+    #     instance.ScenE[rv] = val
 
     # Compute pW and pPV     
     pW_dict = {}
@@ -231,7 +282,7 @@ for sim in SIMS:
         res_log.write(f"card(S0): {card_S0}\n")
         res_log.write(f"card(S): {card_S}\n")
     print(f"card(S0): {card_S0}, card(S): {card_S}") 
-    
+
     # Compute nearest tree scenario to the observed scenario ScenO: dTO and sOR              
     dTO_dict = {}
     min_dTO = 10**10  # Large initial value
@@ -253,6 +304,78 @@ for sim in SIMS:
         res_log.write(f"min_dTO: {min_dTO}\n")
     print(f"Nearest Tree Scenario: sOR={sOR}, min_dTO={min_dTO}")
 
+    # =============================================================================
+    #     Next Initial conditions update
+    # =============================================================================
+    if sim == SIMS[0]:
+        prev_sOR = None
+        
+    if sim != SIMS[0]:
+
+        def read_last_value(file_path, scenario, tol=1e-5):
+            """
+            Read the last column for 'scenario' from a file whose lines look like:
+               <scenario> <prob> v1 v2 ... vN
+            Return vN as an int if it’s within 'tol' of an integer, else as a float.
+            """
+            with open(file_path, "r") as f:
+                for line in f:
+                    parts = line.strip().split()
+                    if parts[0] == str(scenario):
+                        val = float(parts[-1])
+                        # if val is within tol of an integer, snap it
+                        nearest = round(val)
+                        if abs(val - nearest) < tol:
+                            return int(nearest)
+                        return val
+            raise KeyError(f"Scenario {scenario} not found in {file_path}")
+
+        
+        # compute previous‐day code, e.g. '002'→'001', '010'→'009'
+        prev_sim = f"{int(sim)-1:03d}"
+        prev_res = f"results/{famscen}/{probl}/{prev_sim}"
+        # paths to yesterday’s exports
+        bess_file = os.path.join(project_root, prev_res, "BESS")
+        hyd_dir   = os.path.join(project_root, prev_res, "HYD")
+
+        # read the last‐hour values for our chosen scenario sOR
+        instance.SOCini      = read_last_value(os.path.join(bess_file,"socV.txt"), prev_sOR)
+        instance.LOH_ini     = read_last_value(os.path.join(hyd_dir,"LOH.txt"),    prev_sOR)
+        if include_h2:
+            instance.iEL_on_ini  = read_last_value(os.path.join(hyd_dir,"iEL_on.txt"),  prev_sOR)
+            instance.iEL_sb_ini  = read_last_value(os.path.join(hyd_dir,"iEL_sb.txt"),  prev_sOR)
+            instance.iEL_off_ini = read_last_value(os.path.join(hyd_dir,"iEL_off.txt"), prev_sOR)
+            instance.iFC_on_ini  = read_last_value(os.path.join(hyd_dir,"iFC_on.txt"),  prev_sOR)
+            instance.iFC_sb_ini  = read_last_value(os.path.join(hyd_dir,"iFC_sb.txt"),  prev_sOR)
+            instance.iFC_off_ini = read_last_value(os.path.join(hyd_dir,"iFC_off.txt"), prev_sOR)
+        
+        # Log the new initial conditions
+        with open(os.path.join(project_root, pathres, resfile), "a") as res_log:
+            res_log.write("\nNew initial conditions:\n")
+            res_log.write(f"SOCini: {value(instance.SOCini)}\n")
+            res_log.write(f"sOR: {value(instance.sOR)}\n")
+            if include_h2:
+                res_log.write(f"LOH_ini: {value(instance.LOH_ini)}\n")
+                res_log.write(f"iEL_on_ini: {value(instance.iEL_on_ini)}\n")
+                res_log.write(f"iEL_sb_ini: {value(instance.iEL_sb_ini)}\n")
+                res_log.write(f"iEL_off_ini: {value(instance.iEL_off_ini)}\n")
+                res_log.write(f"iFC_on_ini: {value(instance.iFC_on_ini)}\n")
+                res_log.write(f"iFC_sb_ini: {value(instance.iFC_sb_ini)}\n")
+                res_log.write(f"iFC_off_ini: {value(instance.iFC_off_ini)}\n")
+
+        
+        # Print new initial conditions to console
+        print(f"New Initial Conditions:")
+        print(f"SOCini: {value(instance.SOCini)}")
+        if include_h2:
+            print(f"LOH_ini: {value(instance.LOH_ini)}, iEL_on_ini: {value(instance.iEL_on_ini)}, iEL_sb_ini: {value(instance.iEL_sb_ini)}, iEL_off_ini: {value(instance.iEL_off_ini)}, iFC_on_ini: {value(instance.iFC_on_ini)}, iFC_sb_ini: {value(instance.iFC_sb_ini)}, iFC_off_ini: {value(instance.iFC_off_ini)}, sOR: {value(instance.sOR)}")
+
+    else:
+        # Day 1: leave the .dat‐provided iEL_*_ini untouched
+        print("Day 1 — using default initial electrolyzer and fuel cell state from .dat")  
+    
+    prev_sOR = sOR
+    
     # Reset IM bid bounds and auxiliary parameters
     SSG_dict = {sg: set() for sg in instance.SG0}  # Representative scenarios per stage
     probc_dict = {}  # Probability of clusters
@@ -415,7 +538,6 @@ for sim in SIMS:
     # print("\n##### mean_lIB (System Imbalance Prices) #####")
     # for t, val in mean_lIB_dict.items():
     #     print(f"mean_lIB[{t}] = {val}")
-
     
     # Compute and display mean values (the average value across all scenarios for all hours)
     mean_lD_avg  = sum(mean_lD_dict[t] for t in instance.T) / value(instance.nT)
@@ -511,17 +633,33 @@ for sim in SIMS:
     print("Initial conditions:")
     print(f"SOCini: {value(instance.SOCini)}")
     print(f"sOR: {value(instance.sOR)}")
+    if include_h2:
+        print(f"LOHini: {value(instance.LOH_ini)}")
+        print(f"iEL_on_ini: {value(instance.iEL_on_ini)}")
+        print(f"iEL_sb_ini: {value(instance.iEL_sb_ini)}")
+        print(f"iEL_off_ini: {value(instance.iEL_off_ini)}")     
+        print(f"iFC_on_ini: {value(instance.iFC_on_ini)}")
+        print(f"iFC_sb_ini: {value(instance.iFC_sb_ini)}")
+        print(f"iFC_off_ini: {value(instance.iFC_off_ini)}")                                     
     
     with open(os.path.join(project_root, pathres, resfile), "a") as res_log:
         res_log.write("\nInitial conditions:\n")
         res_log.write(f"SOCini: {value(instance.SOCini)}\n")
         res_log.write(f"sOR: {value(instance.sOR)}\n")
+        if include_h2:
+            res_log.write(f"LOH_ini: {value(instance.LOH_ini)}\n")
+            res_log.write(f"iEL_on_ini: {value(instance.iEL_on_ini)}\n")
+            res_log.write(f"iEL_sb_ini: {value(instance.iEL_sb_ini)}\n")
+            res_log.write(f"iEL_off_ini: {value(instance.iEL_off_ini)}\n")
+            res_log.write(f"iFC_on_ini: {value(instance.iFC_on_ini)}\n")
+            res_log.write(f"iFC_sb_ini: {value(instance.iFC_sb_ini)}\n")
+            res_log.write(f"iFC_off_ini: {value(instance.iFC_off_ini)}\n")
 
     # SOLVER OPTIONS
     solver = SolverFactory("gurobi")  # Use gurobi solver
     
     # Set Gurobi options equivalent to CPLEX settings
-    solver.options["MIPGap"] = 0.0001      # Equivalent to mipgap in CPLEX
+    solver.options["MIPGap"] = 0.05      # Equivalent to mipgap in CPLEX
     solver.options["Threads"] = 4        # Use 4 threads
     solver.options["DisplayInterval"] = 2  # Similar to mipdisplay in CPLEX
     solver.options["Presolve"] = 0       # Equivalent to mipbasis (no presolve)
@@ -544,6 +682,29 @@ for sim in SIMS:
     print(f"IB Income: {sum(value(instance.Prob[s]) * value(instance.lPIB[t, s]) * value(instance.pIB_p[t, s]) for t in instance.T for s in instance.S)}")
     print(f"IB Costs: {sum(value(instance.Prob[s]) * value(instance.lNIB[t, s]) * value(instance.pIB_m[t, s]) for t in instance.T for s in instance.S)}")
     print(f"FD Costs: {sum(value(instance.Prob[s]) * value(instance.C_FD) * (value(instance.var_afd_p[t, s]) + value(instance.var_afd_m[t, s])) for t in instance.T for s in instance.S)}")
+    print(f"BESS ageing Costs: {sum(value(instance.Prob[s]) * ((value(instance.dV[t, s]) + value(instance.cV[t, s]))/(2 * value(instance.Emax))) * (value(instance.B_sp_cost) * value(instance.Emax) / value(instance.cyc_max))  for t in instance.T for s in instance.S)}")
+    if include_h2:
+        print(f"H2 Dem Income: {sum(value(instance.lambda_H) * value(instance.HDEM[t]) for t in instance.T)}")
+        print(f"H2 Income: {sum(value(instance.Prob[s]) * value(instance.lambda_H) * value(instance.Hsold[t, s]) * value(instance.can_sell_H2) for t in instance.T for s in instance.S)}")                                                                                                                                                                                                                                                                                                                                                                              
+        print(f"Water Costs: {sum(value(instance.Prob[s]) * value(instance.lambda_wat) * value(instance.sp_wat_EL) * value(instance.HEL[t, s]) for t in instance.T for s in instance.S)}")
+        print(f"Warm startup Costs: {sum(value(instance.Prob[s]) * value(instance.lambda_warm_st) * value(instance.P_EL_nom) * value(instance.i_EL_warm[t, s]) for t in instance.T for s in instance.S)}")
+        print(f"Cold startup Costs: {sum(value(instance.Prob[s]) * value(instance.lambda_cold_st) * value(instance.P_EL_nom) * value(instance.i_EL_cold[t, s]) for t in instance.T for s in instance.S)}")
+        print(f"EL replacement Costs: {sum(value(instance.Prob[s]) * value(instance.EL_repl_cost) * value(instance.P_EL_nom) / value(instance.EL_lifetime) * value(instance.iEL_on[t, s]) for t in instance.T for s in instance.S)}")
+        print(f"Warm startup Costs FC: {sum(value(instance.Prob[s]) * value(instance.lambda_warm_st_FC) * value(instance.P_FC_nom) * value(instance.i_FC_warm[t, s]) for t in instance.T for s in instance.S)}")
+        print(f"Cold startup Costs FC: {sum(value(instance.Prob[s]) * value(instance.lambda_cold_st_FC) * value(instance.P_FC_nom) * value(instance.i_FC_cold[t, s]) for t in instance.T for s in instance.S)}")
+        print(f"FC replacement Costs: {sum(value(instance.Prob[s]) * value(instance.FC_repl_cost) * value(instance.P_FC_nom) / value(instance.FC_lifetime) * value(instance.iFC_on[t, s]) for t in instance.T for s in instance.S)}")
+        
+        # Count electrolyzer on/standby/off hours
+        hours_on   = sum(value(instance.iEL_on[t, s])  for t in instance.T for s in instance.S)
+        hours_sb   = sum(value(instance.iEL_sb[t, s])  for t in instance.T for s in instance.S)
+        hours_off  = sum(value(instance.iEL_off[t, s]) for t in instance.T for s in instance.S)
+        print(f"Electrolyzer hours: ON={hours_on:.0f}, SB={hours_sb:.0f}, OFF={hours_off:.0f}")
+        
+        # Count fuel cell on/standby/off hours
+        hours_on_FC   = sum(value(instance.iFC_on[t, s])  for t in instance.T for s in instance.S)
+        hours_sb_FC   = sum(value(instance.iFC_sb[t, s])  for t in instance.T for s in instance.S)
+        hours_off_FC  = sum(value(instance.iFC_off[t, s]) for t in instance.T for s in instance.S)
+        print(f"Fuel cell hours: ON={hours_on_FC:.0f}, SB={hours_sb_FC:.0f}, OFF={hours_off_FC:.0f}")
 
     # =============================================================================
     # Results analysis
@@ -559,12 +720,20 @@ for sim in SIMS:
         return [(scenario_list[i], scenario_list[i+1]) for i in range(len(scenario_list)-1)]
     
     # List of all variables in non-anticipativity constraints
-    nac_variables = [
+    if include_h2:
+        nac_variables = [
+            "eDA_p", "eDA_m", "ieDA_p",  # Day-Ahead Market
+            "rU", "rU_B", "rU_FD", "rU_EL", "rU_FC",        # Reserve Market Upward
+            "rD", "rD_B", "rD_FD", "rD_EL", "rD_FC"       # Reserve Market Downward
+        ]
+    else:
+        nac_variables = [
         "eDA_p", "eDA_m", "ieDA_p",  # Day-Ahead Market
         "rU", "rU_B", "rU_FD",        # Reserve Market Upward
         "rD", "rD_B", "rD_FD",        # Reserve Market Downward
     ]
-    
+
+        
     # Iterate over all variables
     for var_name in nac_variables:
         if not hasattr(instance, var_name):  # Skip if variable not in model
@@ -610,10 +779,21 @@ for sim in SIMS:
 
 
     # List of all variables in non-anticipativity constraints
-    nac_variables = [
-        "var_fd", "var_afd_p", "var_afd_m",  # Flexible Demand
-        "dV", "cV", "idV", "socV"     # Battery Energy Storage
-    ]
+    if include_h2:
+        nac_variables = [
+            "var_fd", "var_afd_p", "var_afd_m",         # Flexible Demand
+            "dV", "cV", "idV", "socV",                  # Battery Energy Storage
+            "eEL", "eEL_on", "eEL_sb", "iEL_on", "iEL_sb", "iEL_off", "i_EL_warm", "i_EL_cold", "HEL", "HDIR_EL", "HCOMP_EL", # Electrolyzer
+            "eCOMP", "HDIR_COMP", "HC_TK",              # Compressor
+            "LOH", "HDISCH_TK", "HDIR_TK", "iTK",       # Storage tank
+            "HFC", "eFC_on", "eFC_sb", "iFC_on", "iFC_sb", "iFC_off", "i_FC_warm", "i_FC_cold",                         # Fuel cell
+            "Hsold"                                     # Hydrogen sold                                                                                                                                      
+        ]
+    else:
+        nac_variables = [
+            "var_fd", "var_afd_p", "var_afd_m",         # Flexible Demand
+            "dV", "cV", "idV", "socV",                  # Battery Energy Storage                                                                                                                                 
+        ]
     
     # Iterate over all variables
     for var_name in nac_variables:
@@ -650,8 +830,6 @@ for sim in SIMS:
                     except KeyError:
                         print(f"Skipping eIM[{i}, {t}, {l}] or eIM[{i}, {t}, {l_next}] due to missing index")
 
-
-
     # Store results
     print("\n########################")
     print("###### Results #########")
@@ -680,36 +858,6 @@ for sim in SIMS:
     print(f"solve_elapsed_time: {solve_elapsed_time:.2f} seconds")
     # print(f"Number of scenarios: {num_scenarios}")
     
-    # Save Flexible Demand Variables
-    fd_path = os.path.join(project_root, pathres, "FD/")
-    os.makedirs(fd_path, exist_ok=True)
-    
-    for filename, var in zip(["var_fd.txt", "var_afd_p.txt", "var_afd_m.txt"], 
-                             [instance.var_fd, instance.var_afd_p, instance.var_afd_m]):
-        with open(os.path.join(fd_path, filename), "w") as f:
-            for s in instance.S:
-                for t in instance.T:
-                    f.write(f"{s} {value(instance.Prob[s])} {t} {value(var[t, s])}\n")
-    
-    # Store FD parameters and sets
-    fd_params_file = os.path.join(fd_path, "FD_params.txt")
-    with open(fd_params_file, "w") as f:
-        f.write(f"nFI: {value(instance.nFI)}\n")
-        f.write(f"FI: {list(instance.FI)}\n")
-        
-        for t in instance.T:
-            f.write(f"FD[{t}]: {value(instance.FD[t])}\n")
-            f.write(f"FD_L[{t}]: {value(instance.FD_L[t])}\n")
-            f.write(f"FD_U[{t}]: {value(instance.FD_U[t])}\n")
-            f.write(f"RUFD[{t}]: {value(instance.RUFD[t])}\n")
-            f.write(f"RDFD[{t}]: {value(instance.RDFD[t])}\n")
-        
-        for f_ in instance.FI:
-            f.write(f"TF_L[{f_}]: {value(instance.TF_L[f_])}\n")
-            f.write(f"TF_U[{f_}]: {value(instance.TF_U[f_])}\n")
-            f.write(f"coef_FD[{f_}]: {value(instance.coef_FD[f_])}\n")
-    
-        f.write(f"C_FD: {value(instance.C_FD)}\n")
     
     # Define the WP results directory
     wp_path = os.path.join(project_root, pathres, "WP/")
@@ -766,7 +914,7 @@ for sim in SIMS:
         """
         with open(file_path, "w") as f:
             for s in instance.S:
-                # Build a list of string values for each time index
+                # Build a list of string values for each time index        
                 values_str = " ".join(str(value(var[t, s])) for t in time_set)
                 f.write(f"{s} {value(instance.Prob[s])} {values_str}\n")
 
@@ -776,6 +924,34 @@ for sim in SIMS:
             for s in instance.S:
                 diff_values = " ".join(str(value(var1[t, s] - var2[t, s])) for t in time_set)
                 f.write(f"{s} {value(instance.Prob[s])} {diff_values}\n")
+
+    # Save Flexible Demand Variables
+    fd_path = os.path.join(project_root, pathres, "FD/")
+    os.makedirs(fd_path, exist_ok=True)
+    
+    export_variable(instance.var_fd, os.path.join(fd_path, "var_fd.txt"), instance.T)
+    export_variable(instance.var_afd_p, os.path.join(fd_path, "var_afd_p.txt"), instance.T)
+    export_variable(instance.var_afd_m, os.path.join(fd_path, "var_afd_m.txt"), instance.T)
+    
+    # Store FD parameters and sets
+    fd_params_file = os.path.join(fd_path, "FD_params.txt")
+    with open(fd_params_file, "w") as f:
+        f.write(f"nFI: {value(instance.nFI)}\n")
+        f.write(f"FI: {list(instance.FI)}\n")
+        
+        for t in instance.T:
+            f.write(f"FD[{t}]: {value(instance.FD[t])}\n")
+            f.write(f"FD_L[{t}]: {value(instance.FD_L[t])}\n")
+            f.write(f"FD_U[{t}]: {value(instance.FD_U[t])}\n")
+            f.write(f"RUFD[{t}]: {value(instance.RUFD[t])}\n")
+            f.write(f"RDFD[{t}]: {value(instance.RDFD[t])}\n")
+        
+        for f_ in instance.FI:
+            f.write(f"TF_L[{f_}]: {value(instance.TF_L[f_])}\n")
+            f.write(f"TF_U[{f_}]: {value(instance.TF_U[f_])}\n")
+            f.write(f"coef_FD[{f_}]: {value(instance.coef_FD[f_])}\n")
+    
+        f.write(f"C_FD: {value(instance.C_FD)}\n")
 
     # Define the BESS results directory
     bess_path = os.path.join(project_root, pathres, "BESS/")
@@ -792,6 +968,8 @@ for sim in SIMS:
         f.write(f"SOCmin: {value(instance.SOCmin)}\n")
         f.write(f"SOCini: {value(instance.SOCini)}\n")
         f.write(f"SOCfin: {value(instance.SOCfin)}\n")
+        f.write(f"cyc_max: {value(instance.cyc_max)}\n")
+        f.write(f"B_sp_cost: {value(instance.B_sp_cost)}\n")
 
     # Export BESS variables
     export_variable(instance.dV, os.path.join(bess_path, "dV.txt"), instance.T)
@@ -799,7 +977,7 @@ for sim in SIMS:
     export_variable(instance.idV, os.path.join(bess_path, "idV.txt"), instance.T)
     export_variable(instance.socV, os.path.join(bess_path, "socV.txt"), instance.T0)
     export_diff(instance.cV, instance.dV, os.path.join(bess_path, "cV-dV.txt"), instance.T)
-    
+
     # Similarly for DA variables:
     da_path = os.path.join(project_root, pathmarketres, "DA/")
     os.makedirs(da_path, exist_ok=True)
@@ -828,6 +1006,11 @@ for sim in SIMS:
     export_variable(instance.rD, os.path.join(rm_path, "rD.txt"), instance.T)
     export_variable(instance.rD_B, os.path.join(rm_path, "rD_B.txt"), instance.T)
     export_variable(instance.rD_FD, os.path.join(rm_path, "rD_FD.txt"), instance.T)
+    if include_h2:
+        export_variable(instance.rU_EL, os.path.join(rm_path, "rU_EL.txt"), instance.T)
+        export_variable(instance.rU_FC, os.path.join(rm_path, "rU_FC.txt"), instance.T)
+        export_variable(instance.rD_EL, os.path.join(rm_path, "rD_EL.txt"), instance.T)
+        export_variable(instance.rD_FC, os.path.join(rm_path, "rD_FC.txt"), instance.T)
 
 
     # Print header for Intraday Market Parameters
@@ -888,7 +1071,6 @@ for sim in SIMS:
     with open(os.path.join(project_root, pathmarketres, resfile), "a") as res_log:
         res_log.write("\n###### Printing Imbalances Parameters and Optimal Variables #########\n\n")
     
-    
     # Define the IB results directory
     ib_path = os.path.join(project_root, pathmarketres, "IB/")
     os.makedirs(ib_path, exist_ok=True)
@@ -898,8 +1080,75 @@ for sim in SIMS:
     export_variable(instance.pIB_p, os.path.join(ib_path, "pIB_p.txt"), instance.T)
     export_variable(instance.pIB_m, os.path.join(ib_path, "pIB_m.txt"), instance.T)
     export_diff(instance.pIB_p, instance.pIB_m, os.path.join(ib_path, "pIB_p-pIB_m.txt"), instance.T)
-
     
+    if include_h2:
+        # Define the HYD results directory
+        hyd_path = os.path.join(project_root, pathres, "HYD/")
+        os.makedirs(hyd_path, exist_ok=True)
+        
+        # Store HYD parameters
+        hyd_params_file = os.path.join(hyd_path, "HYD_params.txt")
+        with open(hyd_params_file, "w") as f:
+            f.write("###### Printing HYD Parameters and Optimal Variables #########\n\n")
+            f.write(f"HDEM_press: {value(instance.HDEM_press)}\n")
+            f.write(f"min_EL_frac: {value(instance.min_EL_frac)}\n")
+            f.write(f"P_EL_nom: {value(instance.P_EL_nom)}\n")
+            f.write(f"eta_EL: {value(instance.eta_EL)}\n")
+            f.write(f"sp_wat_EL: {value(instance.sp_wat_EL)}\n")
+            f.write(f"lambda_wat: {value(instance.lambda_wat)}\n")
+            f.write(f"SB_frac: {value(instance.SB_frac)}\n")
+            f.write(f"EL_lifetime: {value(instance.EL_lifetime)}\n")
+            f.write(f"EL_repl_cost: {value(instance.EL_repl_cost)}\n")
+            f.write(f"lambda_warm_st: {value(instance.lambda_warm_st)}\n")
+            f.write(f"lambda_cold_st: {value(instance.lambda_cold_st)}\n")
+            f.write(f"spec_COMP: {value(instance.spec_COMP)}\n")
+            f.write(f"P_COMP_nom: {value(instance.P_COMP_nom)}\n")
+            f.write(f"H_tank_cap: {value(instance.H_tank_cap)}\n")
+            f.write(f"P_tank: {value(instance.P_tank)}\n")
+            f.write(f"eta_tank: {value(instance.eta_tank)}\n")
+            f.write(f"LOH_min: {value(instance.LOH_min)}\n")
+            f.write(f"LOH_max: {value(instance.LOH_max)}\n")
+            f.write(f"LOH_ini: {value(instance.LOH_ini)}\n")
+            f.write(f"LOH_fin: {value(instance.LOH_fin)}\n")
+            f.write(f"min_FC_frac: {value(instance.min_FC_frac)}\n")
+            f.write(f"P_FC_nom: {value(instance.P_FC_nom)}\n")
+            f.write(f"eta_FC: {value(instance.eta_FC)}\n")
+            f.write(f"SB_frac_FC: {value(instance.SB_frac_FC)}\n")
+            f.write(f"FC_lifetime: {value(instance.FC_lifetime)}\n")
+            f.write(f"FC_repl_cost: {value(instance.FC_repl_cost)}\n")
+            f.write(f"lambda_warm_st_FC: {value(instance.lambda_warm_st_FC)}\n")
+            f.write(f"lambda_cold_st_FC: {value(instance.lambda_cold_st_FC)}\n")
+
+        # Export HYD variables
+        export_variable(instance.eEL, os.path.join(hyd_path, "eEL.txt"), instance.T)
+        export_variable(instance.HEL, os.path.join(hyd_path, "HEL.txt"), instance.T)
+        export_variable(instance.eEL_on, os.path.join(hyd_path, "eEL_on.txt"), instance.T)
+        export_variable(instance.eEL_sb, os.path.join(hyd_path, "eEL_sb.txt"), instance.T)
+        export_variable(instance.iEL_on, os.path.join(hyd_path, "iEL_on.txt"), instance.T)
+        export_variable(instance.iEL_sb, os.path.join(hyd_path, "iEL_sb.txt"), instance.T)
+        export_variable(instance.iEL_off, os.path.join(hyd_path, "iEL_off.txt"), instance.T)
+        export_variable(instance.i_EL_warm, os.path.join(hyd_path, "i_EL_warm.txt"), instance.T)
+        export_variable(instance.i_EL_cold, os.path.join(hyd_path, "i_EL_cold.txt"), instance.T)
+        export_variable(instance.HDIR_EL, os.path.join(hyd_path, "HDIR_EL.txt"), instance.T)
+        export_variable(instance.HCOMP_EL, os.path.join(hyd_path, "HCOMP_EL.txt"), instance.T)
+        export_variable(instance.eCOMP, os.path.join(hyd_path, "eCOMP.txt"), instance.T)
+        export_variable(instance.HDIR_COMP, os.path.join(hyd_path, "HDIR_COMP.txt"), instance.T)
+        export_variable(instance.Hsold, os.path.join(hyd_path, "Hsold.txt"), instance.T)                                                                              
+        export_variable(instance.HC_TK, os.path.join(hyd_path, "HC_TK.txt"), instance.T)
+        export_variable(instance.LOH, os.path.join(hyd_path, "LOH.txt"), instance.T0)
+        export_variable(instance.HDISCH_TK, os.path.join(hyd_path, "HDISCH_TK.txt"), instance.T)
+        export_variable(instance.HDIR_TK, os.path.join(hyd_path, "HDIR_TK.txt"), instance.T)
+        export_variable(instance.iTK, os.path.join(hyd_path, "iTK.txt"), instance.T)
+        export_variable(instance.HFC, os.path.join(hyd_path, "HFC.txt"), instance.T)  
+        export_variable(instance.eFC_on, os.path.join(hyd_path, "eFC_on.txt"), instance.T)
+        export_variable(instance.eFC_sb, os.path.join(hyd_path, "eFC_sb.txt"), instance.T)
+        export_variable(instance.iFC_on, os.path.join(hyd_path, "iFC_on.txt"), instance.T)
+        export_variable(instance.iFC_sb, os.path.join(hyd_path, "iFC_sb.txt"), instance.T)
+        export_variable(instance.iFC_off, os.path.join(hyd_path, "iFC_off.txt"), instance.T)
+        export_variable(instance.i_FC_warm, os.path.join(hyd_path, "i_FC_warm.txt"), instance.T)
+        export_variable(instance.i_FC_cold, os.path.join(hyd_path, "i_FC_cold.txt"), instance.T)
+        
+
     # Print header for Scenarios
     with open(os.path.join(project_root, pathmarketres, resfile), "a") as res_log:
         res_log.write("\n###### Printing Scenarios #########\n\n")
@@ -955,6 +1204,47 @@ for sim in SIMS:
     obj_IB_income = sum(value(instance.Prob[s]) * value(instance.lPIB[t, s]) * value(instance.pIB_p[t, s])
         for t in instance.T for s in instance.S)
     
+    obj_BESS_costs = sum(value(instance.Prob[s]) * 
+        ((value(instance.dV[t, s]) + value(instance.cV[t, s]))/(2 * value(instance.Emax))) * (value(instance.B_sp_cost) * value(instance.Emax) / value(instance.cyc_max))
+        for t in instance.T for s in instance.S)
+
+    if include_h2:
+        obj_H2_income = sum(value(instance.Prob[s]) * value(instance.lambda_H) * 
+            value(instance.Hsold[t, s]) * value(instance.can_sell_H2)
+            for t in instance.T for s in instance.S)    
+                                                            
+        obj_H2_DEM = sum(value(instance.lambda_H) * value(instance.HDEM[t])
+            for t in instance.T)
+        
+        obj_wat_costs = sum(value(instance.Prob[s]) * value(instance.lambda_wat) * value(instance.sp_wat_EL) *
+            value(instance.HEL[t, s])
+            for t in instance.T for s in instance.S)
+
+        obj_warm_st_costs = sum(value(instance.Prob[s]) * value(instance.lambda_warm_st) * 
+            value(instance.P_EL_nom) * value(instance.i_EL_warm[t, s]) 
+            for t in instance.T for s in instance.S)
+
+        obj_cold_st_costs = sum(value(instance.Prob[s]) * value(instance.lambda_cold_st) * 
+            value(instance.P_EL_nom) * value(instance.i_EL_cold[t, s]) 
+            for t in instance.T for s in instance.S)
+
+        obj_deg_EL_costs = sum(value(instance.Prob[s]) * value(instance.EL_repl_cost) * 
+            value(instance.P_EL_nom) / value(instance.EL_lifetime) * value(instance.iEL_on[t, s])
+            for t in instance.T for s in instance.S)
+        
+        obj_warm_st_costs_FC = sum(value(instance.Prob[s]) * value(instance.lambda_warm_st_FC) * 
+            value(instance.P_FC_nom) * value(instance.i_FC_warm[t, s]) 
+            for t in instance.T for s in instance.S)
+
+        obj_cold_st_costs_FC = sum(value(instance.Prob[s]) * value(instance.lambda_cold_st_FC) * 
+            value(instance.P_FC_nom) * value(instance.i_FC_cold[t, s]) 
+            for t in instance.T for s in instance.S)
+        
+        obj_deg_FC_costs = sum(value(instance.Prob[s]) * value(instance.FC_repl_cost) * 
+            value(instance.P_FC_nom) / value(instance.FC_lifetime) * value(instance.iFC_on[t, s])
+            for t in instance.T for s in instance.S)
+        
+    
     obj_IB_costs = sum(value(instance.Prob[s]) * value(instance.lNIB[t, s]) * value(instance.pIB_m[t, s])
         for t in instance.T for s in instance.S)
     
@@ -964,6 +1254,7 @@ for sim in SIMS:
         (value(instance.var_afd_p[t, s]) + value(instance.var_afd_m[t, s]))
         for t in instance.T for s in instance.S)
 
+
     instance.obj_fun[probl, sim] = obj_fun
     instance.obj_DA_income[probl, sim] = obj_DA_income
     instance.obj_RM_income[probl, sim] = obj_RM_income
@@ -972,42 +1263,57 @@ for sim in SIMS:
     instance.obj_IB_costs[probl, sim] = obj_IB_costs
     instance.obj_IB_net[probl, sim] = obj_IB_net
     instance.obj_FD_costs[probl, sim] = obj_FD_costs
+    instance.obj_BESS_costs[probl, sim] = obj_BESS_costs
+    if include_h2:
+        instance.obj_wat_costs[probl, sim] = obj_wat_costs
+        instance.obj_warm_st_costs[probl, sim] = obj_warm_st_costs
+        instance.obj_cold_st_costs[probl, sim] = obj_cold_st_costs
+        instance.obj_deg_EL_costs[probl, sim] = obj_deg_EL_costs
+        instance.obj_warm_st_costs_FC[probl, sim] = obj_warm_st_costs_FC
+        instance.obj_cold_st_costs_FC[probl, sim] = obj_cold_st_costs_FC
+        instance.obj_deg_FC_costs[probl, sim] = obj_deg_FC_costs
+        instance.obj_H2_income[probl, sim] = obj_H2_income
+        instance.obj_H2_DEM[probl, sim] = obj_H2_DEM
 
     # Store Objective Function Components
-    obj_components = {
-        "obj_fun.txt": obj_fun,
-        "obj_DA_income.txt": obj_DA_income,
-        "obj_RM_income.txt": obj_RM_income,
-        "obj_IM_income.txt": obj_IM_income,
-        "obj_IB_income.txt": obj_IB_income,
-        "obj_IB_costs.txt": obj_IB_costs,
-        "obj_IB_net.txt": obj_IB_net,
-        "obj_FD_costs.txt": obj_FD_costs,
-    }
+    if include_h2:
+        obj_components = {
+            "obj_fun.txt": obj_fun,
+            "obj_DA_income.txt": obj_DA_income,
+            "obj_RM_income.txt": obj_RM_income,
+            "obj_IM_income.txt": obj_IM_income,
+            "obj_IB_income.txt": obj_IB_income,
+            "obj_H2_income.txt": obj_H2_income,
+            "obj_H2_DEM.txt": obj_H2_DEM,
+            "obj_IB_costs.txt": obj_IB_costs,
+            "obj_IB_net.txt": obj_IB_net,
+            "obj_FD_costs.txt": obj_FD_costs,
+            "obj_BESS_costs.txt": obj_BESS_costs,
+            "obj_wat_costs.txt": obj_wat_costs,
+            "obj_warm_st_costs.txt": obj_warm_st_costs,
+            "obj_cold_st_costs.txt": obj_cold_st_costs,
+            "obj_deg_EL_costs.txt": obj_deg_EL_costs,
+            "obj_warm_st_costs_FC.txt": obj_warm_st_costs_FC,
+            "obj_cold_st_costs_FC.txt": obj_cold_st_costs_FC,
+            "obj_deg_FC_costs.txt": obj_deg_FC_costs,
+        }
+    else:
+        obj_components = {
+            "obj_fun.txt": obj_fun,
+            "obj_DA_income.txt": obj_DA_income,
+            "obj_RM_income.txt": obj_RM_income,
+            "obj_IM_income.txt": obj_IM_income,
+            "obj_IB_income.txt": obj_IB_income,
+            "obj_IB_costs.txt": obj_IB_costs,
+            "obj_IB_net.txt": obj_IB_net,
+            "obj_FD_costs.txt": obj_FD_costs,
+            "obj_BESS_costs.txt": obj_BESS_costs
+        }
+
     
     for filename, obj_val in obj_components.items():
         with open(os.path.join(obj_path, filename), "w") as f:
             f.write(f"{obj_val}\n")
-    
-    # -------------------------------------------------
-    # Next Initial Conditions
-    # -------------------------------------------------
-    
-    # Retrieve the results of the closest scenario as the next starting point
-    SOCini_next = value(instance.socV[max(instance.T0), int(value(instance.sOR))])
-
-    # Update the Pyomo model's initial SOC value
-    instance.SOCini = SOCini_next
-    
-    # Log the new initial conditions
-    with open(os.path.join(project_root, pathres, resfile), "a") as res_log:
-        res_log.write("\nNew initial conditions:\n")
-        res_log.write(f"SOCini: {SOCini_next}\n")
-        res_log.write(f"sOR: {value(instance.sOR)}\n")
-    
-    # Print new initial conditions to console
-    print(f"New Initial Conditions:")
-    print(f"SOCini: {SOCini_next}, sOR: {value(instance.sOR)}")
 
     # -------------------------------------------------
     # Print Objective Function and its Components to Results Log
@@ -1024,7 +1330,18 @@ for sim in SIMS:
         res_log.write(f"obj_IB_costs = {value(instance.obj_IB_costs[probl, sim]):6.0f}\n")
         res_log.write(f"obj_IB_net = {value(instance.obj_IB_net[probl, sim]):6.0f}\n")
         res_log.write(f"obj_FD_costs = {value(instance.obj_FD_costs[probl, sim]):6.0f}\n")
-    
+        res_log.write(f"obj_BESS_costs = {value(instance.obj_BESS_costs[probl, sim]):6.0f}\n")
+        if include_h2:
+            res_log.write(f"obj_H2_income = {value(instance.obj_H2_income[probl, sim]):6.0f}\n")
+            res_log.write(f"obj_H2_DEM = {value(instance.obj_H2_DEM[probl, sim]):6.0f}\n")
+            res_log.write(f"obj_wat_costs = {value(instance.obj_wat_costs[probl, sim]):6.0f}\n")
+            res_log.write(f"obj_warm_st_costs = {value(instance.obj_warm_st_costs[probl, sim]):6.0f}\n")
+            res_log.write(f"obj_cold_st_costs = {value(instance.obj_cold_st_costs[probl, sim]):6.0f}\n")
+            res_log.write(f"obj_deg_EL_costs = {value(instance.obj_deg_EL_costs[probl, sim]):6.0f}\n")
+            res_log.write(f"obj_warm_st_costs_FC = {value(instance.obj_warm_st_costs_FC[probl, sim]):6.0f}\n")
+            res_log.write(f"obj_cold_st_costs_FC = {value(instance.obj_cold_st_costs_FC[probl, sim]):6.0f}\n")
+            res_log.write(f"obj_deg_FC_costs = {value(instance.obj_deg_FC_costs[probl, sim]):6.0f}\n")
+        
         res_log.write("#######################################################\n")
 
     obj_results["obj_fun"][sim] = obj_fun
@@ -1035,7 +1352,182 @@ for sim in SIMS:
     obj_results["obj_IB_costs"][sim] = obj_IB_costs
     obj_results["obj_IB_net"][sim] = obj_IB_net
     obj_results["obj_FD_costs"][sim] = obj_FD_costs
+    obj_results["obj_BESS_costs"][sim] = obj_BESS_costs
+    if include_h2:
+        obj_results["obj_H2_income"][sim] = obj_H2_income
+        obj_results["obj_H2_DEM"][sim] = obj_H2_DEM
+        obj_results["obj_wat_costs"][sim] = obj_wat_costs
+        obj_results["obj_warm_st_costs"][sim] = obj_warm_st_costs
+        obj_results["obj_cold_st_costs"][sim] = obj_cold_st_costs
+        obj_results["obj_deg_EL_costs"][sim] = obj_deg_EL_costs
+        obj_results["obj_warm_st_costs_FC"][sim] = obj_warm_st_costs_FC
+        obj_results["obj_cold_st_costs_FC"][sim] = obj_cold_st_costs_FC
+        obj_results["obj_deg_FC_costs"][sim] = obj_deg_FC_costs
     
+    # EX-POST ANALYSIS
+    # ------------------------
+    # 1) Extract realized branch index
+    # ------------------------
+    s_or = int(value(instance.sOR))
+    print(f"\n→ Ex-post replay on realized scenario branch sOR = {s_or}\n")
+    
+    # ------------------------
+    # 2) Build indices
+    # ------------------------
+    T  = list(instance.T)
+    IM = list(instance.IM)
+    IMT = lambda t: list(instance.IMT[t])   # intraday markets active at t
+    
+    # ------------------------
+    # 3) Pull your decisions at (t, sOR)
+    # ------------------------
+    eDA_p_obs    = {t: value(instance.eDA_p[t,    s_or]) for t in T}
+    eDA_m_obs    = {t: value(instance.eDA_m[t,    s_or]) for t in T}
+    rU_obs       = {t: value(instance.rU[t,       s_or]) for t in T}
+    rD_obs       = {t: value(instance.rD[t,       s_or]) for t in T}
+    eIM_obs      = {(i,t): value(instance.eIM[i, t, s_or]) for t in T for i in IMT(t)}
+    pIB_p_obs    = {t: value(instance.pIB_p[t,    s_or]) for t in T}
+    pIB_m_obs    = {t: value(instance.pIB_m[t,    s_or]) for t in T}
+    var_afd_p_obs= {t: value(instance.var_afd_p[t,s_or]) for t in T}
+    var_afd_m_obs= {t: value(instance.var_afd_m[t,s_or]) for t in T}
+    dV_obs       = {t: value(instance.dV[t,      s_or]) for t in T}
+    cV_obs       = {t: value(instance.cV[t,      s_or]) for t in T}
+    if include_h2:
+        Hsold_obs    = {t: value(instance.Hsold[t,   s_or]) for t in T}
+        HDEM         = {t: value(instance.HDEM[t]) for t in T}
+        HEL_obs      = {t: value(instance.HEL[t,     s_or]) for t in T}
+        i_EL_warm_obs= {t: value(instance.i_EL_warm[t,s_or]) for t in T}
+        i_EL_cold_obs= {t: value(instance.i_EL_cold[t,s_or]) for t in T}
+        iEL_on_obs   = {t: value(instance.iEL_on[t,  s_or]) for t in T}
+        i_FC_warm_obs= {t: value(instance.i_FC_warm[t,s_or]) for t in T}
+        i_FC_cold_obs= {t: value(instance.i_FC_cold[t,s_or]) for t in T}
+        iFC_on_obs   = {t: value(instance.iFC_on[t,  s_or]) for t in T}
+
+    # ------------------------
+    # 4) Pull ex-post data from ScenO
+    # ------------------------
+    # Helper to read rv→t or market index
+    def scenO(rv):
+        return value(instance.ScenO[rv])
+
+    # Wind & PV
+    pW_obs  = {}
+    pPV_obs = {}
+    for t in T:
+        rv_w = value(instance.fRVSG[value(instance.sgpw[t])])
+        rv_p = rv_w + 1
+        pW_obs[t]  = min(scenO(rv_w), 1.0) * value(instance.Pavg)
+        pPV_obs[t] = min(scenO(rv_p), 1.0) * value(instance.Pavg_PV)
+    
+    # Day-ahead price
+    lD_price = {t: scenO(t) for t in T}
+    # Reserve market price: assume rv = nT + t
+    lR_price = {t: scenO(value(instance.nT) + t) for t in T}
+        
+    # Imbalance price: rv = fRVSG[nSG] + (t-1)
+    imb_off = value(instance.fRVSG[value(instance.nSG)])
+    lIB_price = {t: scenO(imb_off + (t-1)) for t in T}
+    
+    # positive/negative imbalance‐bound price rules
+    lPIB_price = {}
+    lNIB_price = {}
+    for t in T:
+        lD = lD_price[t]
+        lIB = lIB_price[t]
+        if lIB <= 1:
+            lPIB_price[t] = min(180.3, lIB * lD)
+            lNIB_price[t] =        lD
+        else:
+            lPIB_price[t] =        lD
+            lNIB_price[t] = min(180.3, lIB * lD)
+    
+    # Intraday prices
+    lI_price = {}
+    for i in instance.IM:
+        # find the RV base for market i
+        sg_idx    = value(instance.sgim[i])               # the “sgim[i]” group
+        rv_base   = value(instance.fRVSG[sg_idx])         # maps that group → first RV index
+        t0        = min(instance.TIM[i])                  # your starting time for this IM
+        for t in instance.TIM[i]:
+            rv    = rv_base + (t - t0)                    # exactly as in your ec_run.py
+            lI_price[i, t] = scenO(rv)
+
+    # 5) & 6) Extract scalar params
+        C_FD         = value(instance.C_FD)
+        cyc_max        = value(instance.cyc_max)
+        B_sp_cost      = value(instance.B_sp_cost)
+        Emax           = value(instance.Emax)
+        if include_h2:
+            lambda_H     = value(instance.lambda_H)
+            can_sell_H2  = value(instance.can_sell_H2)
+            lambda_wat   = value(instance.lambda_wat)
+            sp_wat_EL    = value(instance.sp_wat_EL)
+            lambda_warm_EL = value(instance.lambda_warm_st)
+            lambda_cold_EL = value(instance.lambda_cold_st)
+            P_EL_nom       = value(instance.P_EL_nom)
+            EL_repl_cost   = value(instance.EL_repl_cost)
+            EL_lifetime    = value(instance.EL_lifetime)
+            lambda_warm_FC = value(instance.lambda_warm_st_FC)
+            lambda_cold_FC = value(instance.lambda_cold_st_FC)
+            P_FC_nom       = value(instance.P_FC_nom)
+            FC_repl_cost   = value(instance.FC_repl_cost)
+            FC_lifetime    = value(instance.FC_lifetime)
+            
+       
+    # 7) Compute **every** revenue & cost term
+    DA_rev           = sum((eDA_p_obs[t] - eDA_m_obs[t]) * lD_price[t]           for t in T)
+    RM_rev           = sum((rD_obs[t]  + rU_obs[t]) * lR_price[t]               for t in T)
+    ID_rev            = sum(eIM_obs[i,t] * lI_price[i,t]                        for t in T for i in IMT(t))
+    IB_rev           = sum(pIB_p_obs[t] * lPIB_price[t]                         for t in T) \
+                      - sum(pIB_m_obs[t] * lNIB_price[t]                         for t in T)
+    FD_cost          = sum(C_FD * (var_afd_p_obs[t] + var_afd_m_obs[t])         for t in T)
+    BESS_deg_cost    = sum((dV_obs[t] + cV_obs[t]) / (2 * Emax) * B_sp_cost * Emax / cyc_max for t in T)
+    
+    if include_h2:
+        H2_rev           = sum(lambda_H * Hsold_obs[t] * can_sell_H2                for t in T)
+        H2_DEM           = sum(lambda_H * HDEM[t]                                   for t in T)
+        water_cost       = sum(lambda_wat * sp_wat_EL * HEL_obs[t]                  for t in T)
+        warm_EL_cost     = sum(lambda_warm_EL * P_EL_nom * i_EL_warm_obs[t]         for t in T)
+        cold_EL_cost     = sum(lambda_cold_EL * P_EL_nom * i_EL_cold_obs[t]         for t in T)
+        EL_repl_cost_term= sum(EL_repl_cost * P_EL_nom/EL_lifetime * iEL_on_obs[t] for t in T)
+        warm_FC_cost     = sum(lambda_warm_FC * P_FC_nom * i_FC_warm_obs[t]         for t in T)
+        cold_FC_cost     = sum(lambda_cold_FC * P_FC_nom * i_FC_cold_obs[t]         for t in T)
+        FC_repl_cost_term= sum(FC_repl_cost * P_FC_nom/FC_lifetime * iFC_on_obs[t] for t in T)
+
+        ex_post_full = (
+            DA_rev + RM_rev + ID_rev + IB_rev + H2_rev + H2_DEM
+        - FD_cost - BESS_deg_cost - water_cost
+        - warm_EL_cost - cold_EL_cost - EL_repl_cost_term
+        - warm_FC_cost - cold_FC_cost - FC_repl_cost_term
+        )
+    else:
+        ex_post_full = (
+            DA_rev + RM_rev + ID_rev + IB_rev 
+        - FD_cost - BESS_deg_cost
+        )
+    
+    # 8) Print a clean breakdown
+    print("===== Ex-Post Profit Breakdown =====")
+    print(f" Day-Ahead rev:            {DA_rev:10.2f} €")
+    print(f" Reserve market rev:      {RM_rev:10.2f} €")
+    print(f" Intraday market rev:     {ID_rev:10.2f} €")
+    print(f" Imbalance settlement:    {IB_rev:10.2f} €")
+    print(f" Flexible-demand cost:   -{FD_cost:10.2f} €")
+    print(f" BESS ageing cost:       -{BESS_deg_cost:10.2f} €")
+    if include_h2:
+        print(f" H₂ sales revenue:         {H2_rev:10.2f} €")
+        print(f" H₂ demand revenue:         {H2_DEM:10.2f} €")
+        print(f" Water cost EL:          -{water_cost:10.2f} €")
+        print(f" EL warm-start cost:     -{warm_EL_cost:10.2f} €")
+        print(f" EL cold-start cost:     -{cold_EL_cost:10.2f} €")
+        print(f" EL replacement cost:    -{EL_repl_cost_term:10.2f} €")
+        print(f" FC warm-start cost:     -{warm_FC_cost:10.2f} €")
+        print(f" FC cold-start cost:     -{cold_FC_cost:10.2f} €")
+        print(f" FC replacement cost:    -{FC_repl_cost_term:10.2f} €")
+        print("----------------------------------------")
+    print(f" Total ex-post profit:    {ex_post_full:10.2f} €\n")
+            
+
 # -------------------------------------------------
 # Print Objective Function and Components Summary to Console
 # -------------------------------------------------
@@ -1063,6 +1555,17 @@ print_obj_component("obj_IB_income", obj_results)
 print_obj_component("obj_IB_costs", obj_results)
 print_obj_component("obj_IB_net", obj_results)
 print_obj_component("obj_FD_costs", obj_results)
+print_obj_component("obj_BESS_costs", obj_results)
+if include_h2:
+    print_obj_component("obj_H2_income", obj_results)
+    print_obj_component("obj_H2_DEM", obj_results)
+    print_obj_component("obj_wat_costs", obj_results)
+    print_obj_component("obj_warm_st_costs", obj_results)
+    print_obj_component("obj_cold_st_costs", obj_results)
+    print_obj_component("obj_deg_EL_costs", obj_results)
+    print_obj_component("obj_warm_st_costs_FC", obj_results)
+    print_obj_component("obj_cold_st_costs_FC", obj_results)
+    print_obj_component("obj_deg_FC_costs", obj_results)
 
 print("############################################################")
 
@@ -1092,7 +1595,18 @@ with open(os.path.join(project_root, pathres, resfile), "a") as res_log:
     res_log.write(f"obj_IB_costs = {obj_results['obj_IB_costs'].get(sim, 0):.0f}\n")
     res_log.write(f"obj_IB_net = {obj_results['obj_IB_net'].get(sim, 0):.0f}\n")
     res_log.write(f"obj_FD_costs = {obj_results['obj_FD_costs'].get(sim, 0):.0f}\n")
-
+    res_log.write(f"obj_BESS_costs = {obj_results['obj_BESS_costs'].get(sim, 0):.0f}\n")
+    if include_h2:
+        res_log.write(f"obj_H2_income = {obj_results['obj_H2_income'].get(sim, 0):.0f}\n")
+        res_log.write(f"obj_H2_DEM = {obj_results['obj_H2_DEM'].get(sim, 0):.0f}\n")
+        res_log.write(f"obj_wat_costs = {obj_results['obj_wat_costs'].get(sim, 0):.0f}\n")
+        res_log.write(f"obj_warm_st_costs = {obj_results['obj_warm_st_costs'].get(sim, 0):.0f}\n")
+        res_log.write(f"obj_cold_st_costs = {obj_results['obj_cold_st_costs'].get(sim, 0):.0f}\n")
+        res_log.write(f"obj_deg_EL_costs = {obj_results['obj_deg_EL_costs'].get(sim, 0):.0f}\n")
+        res_log.write(f"obj_warm_st_costs_FC = {obj_results['obj_warm_st_costs_FC'].get(sim, 0):.0f}\n")
+        res_log.write(f"obj_cold_st_costs_FC = {obj_results['obj_cold_st_costs_FC'].get(sim, 0):.0f}\n")
+        res_log.write(f"obj_deg_FC_costs = {obj_results['obj_deg_FC_costs'].get(sim, 0):.0f}\n")
+    
     res_log.write("#######################################################\n")
 
 # ---------------------------------------------------------------------------------
@@ -1131,6 +1645,38 @@ with open(profit_file, "w") as f:
     f.write("obj_FD_costs ")
     f.write(" ".join([f"{obj_results['obj_FD_costs'].get(s, 0):6.0f}" for s in SIMS]) + "\n")
 
+    f.write("obj_BESS_costs ")
+    f.write(" ".join([f"{obj_results['obj_BESS_costs'].get(s, 0):6.0f}" for s in SIMS]) + "\n")
+        
+    if include_h2:
+        f.write("obj_H2_income ")
+        f.write(" ".join([f"{obj_results['obj_H2_income'].get(s, 0):6.0f}" for s in SIMS]) + "\n")
+        
+        f.write("obj_H2_DEM ")
+        f.write(" ".join([f"{obj_results['obj_H2_DEM'].get(s, 0):6.0f}" for s in SIMS]) + "\n")
+        
+        f.write("obj_wat_costs ")
+        f.write(" ".join([f"{obj_results['obj_wat_costs'].get(s, 0):6.0f}" for s in SIMS]) + "\n")
+
+        f.write("obj_warm_st_costs ")
+        f.write(" ".join([f"{obj_results['obj_warm_st_costs'].get(s, 0):6.0f}" for s in SIMS]) + "\n")
+
+        f.write("obj_cold_st_costs ")
+        f.write(" ".join([f"{obj_results['obj_cold_st_costs'].get(s, 0):6.0f}" for s in SIMS]) + "\n")
+
+        f.write("obj_deg_EL_costs ")
+        f.write(" ".join([f"{obj_results['obj_deg_EL_costs'].get(s, 0):6.0f}" for s in SIMS]) + "\n")
+        
+        f.write("obj_warm_st_costs_FC ")
+        f.write(" ".join([f"{obj_results['obj_warm_st_costs_FC'].get(s, 0):6.0f}" for s in SIMS]) + "\n")
+
+        f.write("obj_cold_st_costs_FC ")
+        f.write(" ".join([f"{obj_results['obj_cold_st_costs_FC'].get(s, 0):6.0f}" for s in SIMS]) + "\n")
+
+        f.write("obj_deg_FC_costs ")
+        f.write(" ".join([f"{obj_results['obj_deg_FC_costs'].get(s, 0):6.0f}" for s in SIMS]) + "\n")
+    
+    
 # ---------------------------------------------------------------------------------
 # Print Summary of Computational Time
 # ---------------------------------------------------------------------------------
@@ -1187,6 +1733,17 @@ with open(out_filename, "w") as out_file:
     write_obj_component("obj_IB_costs", "obj_IB_costs")
     write_obj_component("obj_IB_net", "obj_IB_net")
     write_obj_component("obj_FD_costs", "obj_FD_costs")
+    write_obj_component("obj_BESS_costs", "obj_BESS_costs")
+    if include_h2:
+        write_obj_component("obj_H2_income", "obj_H2_income")
+        write_obj_component("obj_H2_DEM", "obj_H2_DEM")
+        write_obj_component("obj_wat_costs", "obj_wat_costs")
+        write_obj_component("obj_warm_st_costs", "obj_warm_st_costs")
+        write_obj_component("obj_cold_st_costs", "obj_cold_st_costs")
+        write_obj_component("obj_deg_EL_costs", "obj_deg_EL_costs")
+        write_obj_component("obj_warm_st_costs_FC", "obj_warm_st_costs_FC")
+        write_obj_component("obj_cold_st_costs_FC", "obj_cold_st_costs_FC")
+        write_obj_component("obj_deg_FC_costs", "obj_deg_FC_costs")
 
     out_file.write("############################################################\n")
 
@@ -1212,4 +1769,3 @@ with open(out_filename, "w") as out_file:
 print(f"\nSummary .out file saved to: {out_filename}")
 
 print("END")
-
