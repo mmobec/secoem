@@ -1,3 +1,5 @@
 /models/__pycache__
 /results/
 /scenarios/
+/pre_process_AMPL_to_Pyomo_scenario_data/AMPL format scenario data
+/pre_process_AMPL_to_Pyomo_scenario_data/Python format scenario data
