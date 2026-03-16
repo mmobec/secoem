@@ -1,10 +1,228 @@
-# SECOEM
-Pyomo implementation of Stochastic Energy Community Optimisation in Energy Markets (SECOEM) models
+# MMOBEC-Pyomo: Energy Community Optimization with Pyomo
 
-## License
+## Table of Contents
+1. [Introduction](#introduction)
+2. [Setting Up the Environment](#setting-up-the-environment)
+3. [Configuration](#configuration)
+4. [Workflow](#workflow)
+5. [Running the Simulation](#running-the-simulation)
+6. [Output and Results](#output-and-results)
+7. [Repository Structure](#repository-structure)
+8. [Notes](#notes)
 
-Copyright 2026 mmobec, contributors listed in Authors.
+---
 
-Licensed under the EUPL-1.2. You may not use this file except in compliance with the License.
+## Introduction
 
-Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+**MMOBEC-Pyomo** is an optimization model for an energy community interacting with the electricity market to maximize profits. The model is implemented using the **Pyomo** library, replacing an AMPL-based formulation.
+
+The energy community consists of:
+- **Flexible Demand** (implicit modeling)
+- **Wind Farm**
+- **Solar Farm**
+- **Battery Energy Storage System (BESS)**
+- **Hydrogen Chain** (optional): electrolyzer, hydrogen storage, and hydrogen demand
+
+The problem is formulated as a **multi-stage stochastic optimization** for scheduling energy production, consumption, and trading.
+
+---
+
+## Setting Up the Environment
+
+This project requires **Python 3.11+**.
+
+### 1. Clone the Repository
+```sh
+git clone https://github.com/mmobec/mmobec-pyomo.git
+cd mmobec-pyomo
+```
+
+### 2. Install Dependencies
+
+#### Option A: pip (recommended)
+```sh
+pip install .
+```
+This automatically installs all required dependencies defined in `pyproject.toml`.
+
+#### Option B: Conda
+If you prefer Conda, install [Miniconda](https://docs.conda.io/en/latest/miniconda.html) first, then:
+```sh
+conda env create -f python_environment/optirec_env.yml
+conda activate optirec_env
+```
+
+---
+
+## Configuration
+
+Before running the simulation, you must configure the `config.yaml` file located in the `codes/` directory. This file controls all key parameters of the model:
+
+```yaml
+# Data file names
+BESS_datfile: "ec_BESS.dat"
+wind_datfile: "ec_wind.dat"
+market_datfile: "market.dat"
+hydrogen_datfile: "ec_HYD.dat"
+
+# Run mode
+MODE: 'multiscen'
+
+# Problem definition
+PROB: ["ec"]
+probl: 'ec'
+famscen: "FTC_202407_202412_c92_sc100_DA"
+include_h2: true
+n_days: 1
+project_root: "~/secoem"
+
+# Data paths
+pathdem: "data/demand/"
+pathdem_h2: "data/demand_h2/"
+
+# Output files
+resfile: "results_log.res"
+timefileFull: "time.txt"
+numscenfile: "numscen.txt"
+```
+
+### Key parameters to adjust:
+
+| Parameter | Description |
+|-----------|-------------|
+| `famscen` | Name of the scenario family folder inside `scenarios/` |
+| `n_days` | Number of days to simulate |
+| `project_root` | Absolute path to the root of the repository on your machine |
+| `include_h2` | Set to `true` to include the hydrogen chain, `false` to run electricity-only model |
+| `MODE` | Run mode — use `'multiscen'` for stochastic multi-scenario optimization |
+
+---
+
+## Workflow
+
+1. Copy your AMPL-formatted `.dat` scenario files into the `scenarios/` folder.
+2. Ensure the directory follows the naming convention, e.g., `FTC_10_2023_12/` for a 10-scenario simulation.
+
+### Convert AMPL Data to Pyomo Format
+
+Navigate to the `pre_process_AMPL_to_Pyomo_scenario_data/` directory:
+
+```sh
+cd pre_process_AMPL_to_Pyomo_scenario_data
+```
+
+Run the conversion script:
+
+```sh
+python ampl_to_pyomo_scenario_files.py
+```
+
+This script:
+- Reads `.dat` scenario files from `scenarios/`
+- Converts them into a format compatible with Pyomo
+- Overwrites the files in `scenarios/`
+
+---
+
+## Running the Simulation
+
+Navigate to the `codes/` directory:
+
+```sh
+cd ../codes
+```
+
+Run the optimization model:
+
+```sh
+python ec_run.py
+```
+
+`ec_run.py` reads `config.yaml` and automatically selects the appropriate model:
+- `include_h2: false` → runs `codes/models/ec_model.py` (electricity only)
+- `include_h2: true` → runs `codes/models/ec_hydrogen_model.py` (electricity + hydrogen chain)
+
+This will:
+- Load the configuration from `config.yaml`
+- Load the scenario data from `scenarios/`
+- Create optimal bids for the EC
+- Store results in the `results/` directory
+
+---
+
+## Output and Results
+
+- The results of the optimization will be stored in the `results/` directory.
+- The output includes scheduled energy production, consumption, and trading strategies.
+
+---
+
+## Repository Structure
+
+### 1. Data Files
+
+Data is divided into two directories. The directory `data/` contains all deterministic parameters and the directory `scenarios/` contains all uncertain parameters:
+
+**Electricity:**
+
+a. `data/ec_BESS.dat` — AMPL data file containing the values of the battery's parameters.
+
+b. `data/demand/` — Directory containing the electrical demand profiles.
+
+c. `data/ec_wind.dat` — AMPL data file containing the values of the wind farm and solar PV parameters.
+
+d. `data/market.dat` — AMPL data file containing the market parameters.
+
+**Hydrogen:**
+
+e. `data/ec_HYD.dat` — AMPL data file containing all hydrogen chain parameters (electrolyzer, storage, etc.).
+
+f. `data/demand_h2/` — Directory containing hydrogen demand profiles, analogous to `data/demand/` for electrical demand.
+
+**Scenarios:**
+
+g. `scenarios/famscen("nom de la familia")/famscen-SIM.dat` — AMPL data file containing the values of all scenarios (electricity market prices, wind and PV generation). It also contains the cluster structure to represent the scenario tree.
+
+See Section *Convert AMPL Data to Pyomo Format* on converting the AMPL data files into Pyomo data files.
+
+### 2. Code Files
+
+The code files are in the directory `codes/`:
+
+a. `codes/ec_run.py` — Controls the execution of the model. Reads `config.yaml`, selects the appropriate model based on the `include_h2` flag, loads data from `data/` and `scenarios/`, executes the optimization, and stores results in `results/`.
+
+b. `codes/config.yaml` — All user-configurable parameters. See the [Configuration](#configuration) section.
+
+c. `codes/models/ec_model.py` — Pyomo Abstract Model for the electricity-only energy community. Follows the mathematical formulation in `model_formulation/ec_model_formulation.pdf`.
+
+d. `codes/models/ec_hydrogen_model.py` — Extended Pyomo Abstract Model that includes the hydrogen chain (electrolyzer, hydrogen storage, hydrogen demand) in addition to the electricity components.
+
+### 3. Results Files
+
+The directory `results/` contains the results files of the days for which the model has been executed.
+
+They are indexed by scenario family. This means that if the code has been executed for the scenario family `famscen`, the results will be stored in `results/famscen/`.
+
+### 4. Mathematical Formulation Files
+
+An updated mathematical formulation in `LaTeX` of the optimization models is maintained in the `model_formulation/` directory:
+
+
+---
+
+## Notes
+
+- If you re-run the simulation, results will be overwritten.
+- The `results/` folder is ignored in Git to keep the repository clean.
+- Make sure to update `project_root` in `config.yaml` to match the absolute path on your local machine.
+- When `include_h2: false`, the `hydrogen_datfile` and `pathdem_h2` parameters in `config.yaml` are ignored.
+
+---
+
+### License
+
+This project is licensed under the GNU License - see the [LICENSE](LICENSE) file for details.
+
+### Contact
+
+For questions or contributions, please open an issue or contact the repository maintainers.
