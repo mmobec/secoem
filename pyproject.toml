@@ -1,6 +1,9 @@
 [build-system]
 requires = ["setuptools>=61", "wheel"]
-build-backend = "setuptools.backends.legacy:build"
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["codes*"]
 
 [project]
 name = "secoem"
@@ -8,7 +11,7 @@ version = "0.1.0"
 description = "Energy Community Optimization Model"
 readme = "README.md"
 requires-python = ">=3.10"
-license = {text = "MIT"}
+license = "MIT"
 
 authors = [
     {name = ""}
