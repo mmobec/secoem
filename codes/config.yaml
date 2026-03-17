@@ -7,7 +7,7 @@ MODE: 'multiscen'
 
 PROB: ["ec"]
 probl: 'ec'
-famscen: "FTC_202407_202412_c92_sc100_DA"
+famscen: "FTC_202407_202412_c92_sc100"
 include_h2: false
 n_days: 1
 project_root: "~/secoem" 
