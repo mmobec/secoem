@@ -41,7 +41,7 @@ cd secoem
 ```sh
 pip install .
 ```
-This automatically installs all required dependencies defined in `pyproject.toml`.
+This automatically installs all required dependencies defined in `pyproject.toml`. It is recommended to create a virtual environment for this repository to avoid conflicts.
 
 ---
 
