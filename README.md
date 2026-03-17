@@ -136,17 +136,17 @@ Data is divided into two directories. The directory `data/` contains all determi
 
 **Electricity:**
 
-a. `data/ec_BESS.dat` — AMPL data file containing the values of the battery's parameters.
+a. `data/ec_BESS.dat` —  data file containing the values of the battery's parameters.
 
 b. `data/demand/` — Directory containing the electrical demand profiles.
 
-c. `data/ec_wind.dat` — AMPL data file containing the values of the wind farm and solar PV parameters.
+c. `data/ec_wind.dat` —  data file containing the values of the wind farm and solar PV parameters.
 
-d. `data/market.dat` — AMPL data file containing the market parameters.
+d. `data/market.dat` —  data file containing the market parameters.
 
 **Hydrogen:**
 
-e. `data/ec_HYD.dat` — AMPL data file containing all hydrogen chain parameters (electrolyzer, storage, etc.).
+e. `data/ec_HYD.dat` —  data file containing all hydrogen chain parameters (electrolyzer, storage, etc.).
 
 f. `data/demand_h2/` — Directory containing hydrogen demand profiles, analogous to `data/demand/` for electrical demand.
 
