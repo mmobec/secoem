@@ -119,6 +119,22 @@ This will:
 - Create optimal bids for the EC
 - Store results in the `results/` directory
 
+The repository ships with a ready-to-run example that requires no additional data download. It is configured via the default `config.yaml` and uses the scenario family `FTC_202407_202412_c92_sc100_DA`.
+
+### Energy Community Assets
+
+| Asset | Parameter | Value |
+|---|---|---|
+| BESS | Energy capacity \(E^B\) | 30 MWh |
+| BESS | Max charge/discharge rate \(P^B\) | proportional (see `ec_BESS.dat`) |
+| Wind farm | Nameplate capacity \(P^W\) | 20 MW |
+| Solar PV | Nameplate capacity \(P^{PV}\) | 15 MW |
+| Flexible demand | Profile | Hourly electrical demand (see `data/demand/`) |
+
+All parameters can be adjusted in their corresponding files.
+
+The scenario tree is a 100-scenario tree for each day.
+
 ---
 
 ## Output and Results
