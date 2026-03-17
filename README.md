@@ -152,9 +152,8 @@ f. `data/demand_h2/` — Directory containing hydrogen demand profiles, analogou
 
 **Scenarios:**
 
-g. `scenarios/famscen("nom de la familia")/famscen-SIM.dat` — AMPL data file containing the values of all scenarios (electricity market prices, wind and PV generation). It also contains the cluster structure to represent the scenario tree.
+g. `scenarios/famscen/famscen-SIM.dat` —  data file containing the values of all scenarios (electricity market prices, wind and PV generation). It also contains the cluster structure to represent the scenario tree.
 
-See Section *Convert AMPL Data to Pyomo Format* on converting the AMPL data files into Pyomo data files.
 
 ### 2. Code Files
 
@@ -176,7 +175,7 @@ They are indexed by scenario family. This means that if the code has been execut
 
 ### 4. Mathematical Formulation Files
 
-An updated mathematical formulation in `LaTeX` of the optimization models is maintained in the `model_formulation/` directory:
+An updated mathematical formulation in `LaTeX` of the optimization models is maintained in the `model_formulation/` directory
 
 
 ---
