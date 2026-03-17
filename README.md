@@ -4,11 +4,10 @@
 1. [Introduction](#introduction)
 2. [Setting Up the Environment](#setting-up-the-environment)
 3. [Configuration](#configuration)
-4. [Workflow](#workflow)
-5. [Running the Simulation](#running-the-simulation)
-6. [Output and Results](#output-and-results)
-7. [Repository Structure](#repository-structure)
-8. [Notes](#notes)
+4. [Running the Simulation](#running-the-simulation)
+5. [Output and Results](#output-and-results)
+6. [Repository Structure](#repository-structure)
+7. [Notes](#notes)
 
 ---
 
@@ -125,10 +124,10 @@ The repository ships with a ready-to-run example that requires no additional dat
 
 | Asset | Parameter | Value |
 |---|---|---|
-| BESS | Energy capacity \(E^B\) | 30 MWh |
-| BESS | Max charge/discharge rate \(P^B\) | proportional (see `ec_BESS.dat`) |
-| Wind farm | Nameplate capacity \(P^W\) | 20 MW |
-| Solar PV | Nameplate capacity \(P^{PV}\) | 15 MW |
+| BESS | Energy capacity  | 30 MWh |
+| BESS | Max charge/discharge rate  | proportional (see `ec_BESS.dat`) |
+| Wind farm | Nameplate capacity | 20 MW | (see `ec_wind.dat`)
+| Solar PV | Nameplate capacity | 15 MW | (see `ec_wind.dat`)
 | Flexible demand | Profile | Hourly electrical demand (see `data/demand/`) |
 
 All parameters can be adjusted in their corresponding files.
