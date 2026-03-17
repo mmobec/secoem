@@ -1,4 +1,4 @@
-# MMOBEC-Pyomo: Energy Community Optimization with Pyomo
+# SECOEM: Energy Community Optimization with Pyomo
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -14,8 +14,7 @@
 
 ## Introduction
 
-**MMOBEC-Pyomo** is an optimization model for an energy community interacting with the electricity market to maximize profits. The model is implemented using the **Pyomo** library, replacing an AMPL-based formulation.
-
+**SECOEM** is an optimization model for an energy community interacting with the electricity market to maximize profits. The model is implemented using the **Pyomo** library.
 The energy community consists of:
 - **Flexible Demand** (implicit modeling)
 - **Wind Farm**
@@ -33,24 +32,16 @@ This project requires **Python 3.11+**.
 
 ### 1. Clone the Repository
 ```sh
-git clone https://github.com/mmobec/mmobec-pyomo.git
-cd mmobec-pyomo
+git clone https://github.com/mmobec/secoem.git
+cd secoem
 ```
 
 ### 2. Install Dependencies
 
-#### Option A: pip (recommended)
 ```sh
 pip install .
 ```
 This automatically installs all required dependencies defined in `pyproject.toml`.
-
-#### Option B: Conda
-If you prefer Conda, install [Miniconda](https://docs.conda.io/en/latest/miniconda.html) first, then:
-```sh
-conda env create -f python_environment/optirec_env.yml
-conda activate optirec_env
-```
 
 ---
 
@@ -98,29 +89,9 @@ numscenfile: "numscen.txt"
 
 ---
 
-## Workflow
+## Scenarios
 
-1. Copy your AMPL-formatted `.dat` scenario files into the `scenarios/` folder.
-2. Ensure the directory follows the naming convention, e.g., `FTC_10_2023_12/` for a 10-scenario simulation.
-
-### Convert AMPL Data to Pyomo Format
-
-Navigate to the `pre_process_AMPL_to_Pyomo_scenario_data/` directory:
-
-```sh
-cd pre_process_AMPL_to_Pyomo_scenario_data
-```
-
-Run the conversion script:
-
-```sh
-python ampl_to_pyomo_scenario_files.py
-```
-
-This script:
-- Reads `.dat` scenario files from `scenarios/`
-- Converts them into a format compatible with Pyomo
-- Overwrites the files in `scenarios/`
+Put the scenario files in pyomo format into `/scenarios`. The naming format is important: scenario files should follow the format `famscen-scenario_number.dat`. For example for `famscen FTC_10_2-24`, the files should be named `FTC_10_2023_12-001.dat` etc..
 
 ---
 
