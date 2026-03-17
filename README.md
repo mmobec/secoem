@@ -51,6 +51,9 @@ This automaticall installas all required packages in `pyproject.toml`:
 ```sh
 pip install .
 ```
+More information:
+[Python `venv` documentation](https://docs.python.org/3/library/venv.html)
+
 
 ---
 
