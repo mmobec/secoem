@@ -34,13 +34,23 @@ This project requires **Python 3.11+**.
 git clone https://github.com/mmobec/secoem.git
 cd secoem
 ```
+### 2. Virtual Environment
+It is recommended to create a virtual environment for this repository to avoid conflicts.
+```sh
+python -m venv .venv
 
-### 2. Install Dependencies
+#Mac / Linux:
+source .venv/bin/activate
 
+# On Windows:
+.venv\Scripts\activate
+```
+
+### 3. Install Dependencies
+This automaticall installas all required packages in `pyproject.toml`:
 ```sh
 pip install .
 ```
-This automatically installs all required dependencies defined in `pyproject.toml`. It is recommended to create a virtual environment for this repository to avoid conflicts.
 
 ---
 
