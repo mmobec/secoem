@@ -19,9 +19,9 @@ The energy community consists of:
 - **Wind Farm**
 - **Solar Farm**
 - **Battery Energy Storage System (BESS)**
-- **Hydrogen Chain** (optional): electrolyzer, hydrogen storage, and hydrogen demand
+- **Hydrogen Chain** (optional): electrolyzer, hydrogen storage, fuel cell, and hydrogen demand
 
-The problem is formulated as a **multi-stage stochastic optimization** for scheduling energy production, consumption, and trading.
+The problem is formulated as a **multi-stage stochastic programming model** for optimal multi-market participation under price and variable renewable uncertainty. It considers internal electricity demand, and hydrogen demand if the hydrogen chain is activated.
 
 ---
 
@@ -35,22 +35,26 @@ git clone https://github.com/mmobec/secoem.git
 cd secoem
 ```
 ### 2. Virtual Environment
-It is recommended to create a virtual environment for this repository to avoid conflicts.
+It is recommended to create a virtual environment for this repository to avoid version conflicts. A virtual environment can be created with `venv`
 ```sh
 python -m venv .venv
-
-#Mac / Linux:
+```
+where `.venv` is the name of the environment. Once created, it can be activated on Linux and Mac with
+```sh
 source .venv/bin/activate
-
-# On Windows:
+```
+and on Windows with
+```sh
 .venv\Scripts\activate
 ```
 
 ### 3. Install Dependencies
-This automaticall installas all required packages in `pyproject.toml`:
+We recommend installation of all required packages with `pip`. The instruction 
 ```sh
 pip install .
 ```
+automatically installs all required packages in `pyproject.toml`:
+
 More information:
 [Python `venv` documentation](https://docs.python.org/3/library/venv.html)
 
@@ -107,7 +111,7 @@ Put the scenario files in pyomo format into `/scenarios`. The naming format is i
 
 ---
 
-## Running the Simulation
+## Running the Code
 
 Navigate to the `codes/` directory:
 
@@ -127,11 +131,13 @@ python ec_run.py
 
 This will:
 - Load the configuration from `config.yaml`
-- Load the scenario data from `scenarios/`
+- Load the scenario data from `scenarios/` and the energy community data from `data\`
 - Create optimal bids for the EC
 - Store results in the `results/` directory
 
-The repository ships with a ready-to-run example that requires no additional data download. It is configured via the default `config.yaml` and uses the scenario family `FTC_202407_202412_c92_sc100_DA`.
+## Example
+
+The repository contains a ready-to-run example that requires no additional data download. It is configured via the default `config.yaml` and uses the scenario family `FTC_202407_202412_c92_sc100_DA`.
 
 ### Energy Community Assets
 
