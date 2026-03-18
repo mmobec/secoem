@@ -1,29 +1,27 @@
-# MMOBEC-Pyomo: Energy Community Optimization with Pyomo
+# SECOEM: Energy Community Optimization with Pyomo
 
 ## Table of Contents
 1. [Introduction](#introduction)
 2. [Setting Up the Environment](#setting-up-the-environment)
 3. [Configuration](#configuration)
-4. [Workflow](#workflow)
-5. [Running the Simulation](#running-the-simulation)
-6. [Output and Results](#output-and-results)
-7. [Repository Structure](#repository-structure)
-8. [Notes](#notes)
+4. [Running the Simulation](#running-the-simulation)
+5. [Output and Results](#output-and-results)
+6. [Repository Structure](#repository-structure)
+7. [Notes](#notes)
 
 ---
 
 ## Introduction
 
-**MMOBEC-Pyomo** is an optimization model for an energy community interacting with the electricity market to maximize profits. The model is implemented using the **Pyomo** library, replacing an AMPL-based formulation.
-
+**SECOEM** is an optimization model for an energy community interacting with the electricity market to maximize profits. The model is implemented using the **Pyomo** library.
 The energy community consists of:
 - **Flexible Demand** (implicit modeling)
 - **Wind Farm**
 - **Solar Farm**
 - **Battery Energy Storage System (BESS)**
-- **Hydrogen Chain** (optional): electrolyzer, hydrogen storage, and hydrogen demand
+- **Hydrogen Chain** (optional): electrolyzer, hydrogen storage, fuel cell, and hydrogen demand
 
-The problem is formulated as a **multi-stage stochastic optimization** for scheduling energy production, consumption, and trading.
+The problem is formulated as a **multi-stage stochastic programming model** for optimal multi-market participation under price and variable renewable uncertainty. It considers internal electricity demand, and hydrogen demand if the hydrogen chain is activated.
 
 ---
 
@@ -33,24 +31,33 @@ This project requires **Python 3.11+**.
 
 ### 1. Clone the Repository
 ```sh
-git clone https://github.com/mmobec/mmobec-pyomo.git
-cd mmobec-pyomo
+git clone https://github.com/mmobec/secoem.git
+cd secoem
+```
+### 2. Virtual Environment
+It is recommended to create a virtual environment for this repository to avoid version conflicts. A virtual environment can be created with `venv`
+```sh
+python -m venv .venv
+```
+where `.venv` is the name of the environment. Once created, it can be activated on Linux and Mac with
+```sh
+source .venv/bin/activate
+```
+and on Windows with
+```sh
+.venv\Scripts\activate
 ```
 
-### 2. Install Dependencies
-
-#### Option A: pip (recommended)
+### 3. Install Dependencies
+We recommend installation of all required packages with `pip`. The instruction 
 ```sh
 pip install .
 ```
-This automatically installs all required dependencies defined in `pyproject.toml`.
+automatically installs all required packages in `pyproject.toml`:
 
-#### Option B: Conda
-If you prefer Conda, install [Miniconda](https://docs.conda.io/en/latest/miniconda.html) first, then:
-```sh
-conda env create -f python_environment/optirec_env.yml
-conda activate optirec_env
-```
+More information:
+[Python `venv` documentation](https://docs.python.org/3/library/venv.html)
+
 
 ---
 
@@ -98,33 +105,13 @@ numscenfile: "numscen.txt"
 
 ---
 
-## Workflow
+## Scenarios
 
-1. Copy your AMPL-formatted `.dat` scenario files into the `scenarios/` folder.
-2. Ensure the directory follows the naming convention, e.g., `FTC_10_2023_12/` for a 10-scenario simulation.
-
-### Convert AMPL Data to Pyomo Format
-
-Navigate to the `pre_process_AMPL_to_Pyomo_scenario_data/` directory:
-
-```sh
-cd pre_process_AMPL_to_Pyomo_scenario_data
-```
-
-Run the conversion script:
-
-```sh
-python ampl_to_pyomo_scenario_files.py
-```
-
-This script:
-- Reads `.dat` scenario files from `scenarios/`
-- Converts them into a format compatible with Pyomo
-- Overwrites the files in `scenarios/`
+Put the scenario files in pyomo format into `/scenarios`. The naming format is important: scenario files should follow the format `famscen-scenario_number.dat`. For example for `famscen FTC_10_2-24`, the files should be named `FTC_10_2023_12-001.dat` etc..
 
 ---
 
-## Running the Simulation
+## Running the Code
 
 Navigate to the `codes/` directory:
 
@@ -144,9 +131,27 @@ python ec_run.py
 
 This will:
 - Load the configuration from `config.yaml`
-- Load the scenario data from `scenarios/`
+- Load the scenario data from `scenarios/` and the energy community data from `data\`
 - Create optimal bids for the EC
 - Store results in the `results/` directory
+
+## Example
+
+The repository contains a ready-to-run example that requires no additional data download. It is configured via the default `config.yaml` and uses the scenario family `FTC_202407_202412_c92_sc100_DA`.
+
+### Energy Community Assets
+
+| Asset | Parameter | Value |
+|---|---|---|
+| BESS | Energy capacity  | 30 MWh |
+| BESS | Max charge/discharge rate  | proportional (see `ec_BESS.dat`) |
+| Wind farm | Nameplate capacity | 20 MW | (see `ec_wind.dat`)
+| Solar PV | Nameplate capacity | 15 MW | (see `ec_wind.dat`)
+| Flexible demand | Profile | Hourly electrical demand (see `data/demand/`) |
+
+All parameters can be adjusted in their corresponding files.
+
+The scenario tree is a 100-scenario tree for each day.
 
 ---
 
@@ -165,25 +170,24 @@ Data is divided into two directories. The directory `data/` contains all determi
 
 **Electricity:**
 
-a. `data/ec_BESS.dat` — AMPL data file containing the values of the battery's parameters.
+a. `data/ec_BESS.dat` —  data file containing the values of the battery's parameters.
 
 b. `data/demand/` — Directory containing the electrical demand profiles.
 
-c. `data/ec_wind.dat` — AMPL data file containing the values of the wind farm and solar PV parameters.
+c. `data/ec_wind.dat` —  data file containing the values of the wind farm and solar PV parameters.
 
-d. `data/market.dat` — AMPL data file containing the market parameters.
+d. `data/market.dat` —  data file containing the market parameters.
 
 **Hydrogen:**
 
-e. `data/ec_HYD.dat` — AMPL data file containing all hydrogen chain parameters (electrolyzer, storage, etc.).
+e. `data/ec_HYD.dat` —  data file containing all hydrogen chain parameters (electrolyzer, storage, etc.).
 
 f. `data/demand_h2/` — Directory containing hydrogen demand profiles, analogous to `data/demand/` for electrical demand.
 
 **Scenarios:**
 
-g. `scenarios/famscen("nom de la familia")/famscen-SIM.dat` — AMPL data file containing the values of all scenarios (electricity market prices, wind and PV generation). It also contains the cluster structure to represent the scenario tree.
+g. `scenarios/famscen/famscen-SIM.dat` —  data file containing the values of all scenarios (electricity market prices, wind and PV generation). It also contains the cluster structure to represent the scenario tree.
 
-See Section *Convert AMPL Data to Pyomo Format* on converting the AMPL data files into Pyomo data files.
 
 ### 2. Code Files
 
@@ -205,7 +209,7 @@ They are indexed by scenario family. This means that if the code has been execut
 
 ### 4. Mathematical Formulation Files
 
-An updated mathematical formulation in `LaTeX` of the optimization models is maintained in the `model_formulation/` directory:
+An updated mathematical formulation in `LaTeX` of the optimization models is maintained in the `model_formulation/` directory
 
 
 ---
