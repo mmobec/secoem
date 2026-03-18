@@ -91,6 +91,19 @@ pathdem_h2: "data/demand_h2/"
 resfile: "results_log.res"
 timefileFull: "time.txt"
 numscenfile: "numscen.txt"
+
+# Solver settings
+solver:
+  name: "appsi_highs"
+  MIPGap: 0.05
+  Threads: 4
+  DisplayInterval: 2
+  Presolve: 0
+  TimeLimit: 3600
+  Seed: 2
+  simplex_strategy: 1
+
+By default, HiGHS is selected as the solver. For faster runtimes, commercial solvers such as Gurobi can be used.
 ```
 
 ### Key parameters to adjust:
