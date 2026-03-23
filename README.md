@@ -4,7 +4,7 @@
 1. [Introduction](#introduction)
 2. [Setting Up the Environment](#setting-up-the-environment)
 3. [Configuration](#configuration)
-4. [Running the Simulation](#running-the-simulation)
+4. [Running the Models](#running-the-models)
 5. [Output and Results](#output-and-results)
 6. [Examples](#examples)
 7. [Repository Structure](#repository-structure)
@@ -14,7 +14,7 @@
 
 ## Introduction
 
-**SECOEM** is an optimization model for an energy community interacting with the electricity market to maximize profits. The model is implemented using the **Pyomo** library.
+**SECOEM** is an optimization model for an energy community interacting with the electricity market to satisfy its demand at the minimum cost and make the most of excess variable renewable generation. The model is implemented using the **Pyomo** library.
 The energy community consists of:
 - **Flexible Demand** (implicit modeling)
 - **Wind Farm**
@@ -24,13 +24,13 @@ The energy community consists of:
 
 The problem is formulated as a **multi-stage stochastic programming model** for optimal multi-market participation under price and variable renewable uncertainty. It considers internal electricity demand, and hydrogen demand if the hydrogen chain is activated.
 
+The repository includes two ready-to-run examples that requires no additional data download (see [Examples](#examples)).
+
 ---
 
 ## Setting Up the Environment
 
 This project requires **Python 3.11+**.
-
-If you just want to run the built-in example with minimal setup, follow these steps in order:
 
 ### 1. Clone the Repository
 ```sh
@@ -118,7 +118,7 @@ The naming format is important: scenario files should follow the format `famscen
 
 ---
 
-## Running the Code
+## Running the Models
 
 Make sure you have activated your virtual environment and updated `project_root` in `config.yaml` before executing.
 
@@ -147,7 +147,6 @@ This will:
 - The results of the optimization will be stored in the `results/` directory.
 - The output includes scheduled energy production, consumption, and trading strategies.
 
-The repository includes two ready-to-run examples that requires no additional data download (see [Examples](#examples)).
 
 ---
 
@@ -170,7 +169,7 @@ All parameters can be adjusted in their corresponding files.
 ---
 
 
-### Example 1: `FTC_2024_10`()
+### Example 1: `FTC_2024_10`
 
 Example 1 is configured via the default `config.yaml` and uses the scenario family `FTC_2024_10`.
 
@@ -178,7 +177,7 @@ To run this example, once you have [set up the environment](#setting-up-the-envi
 
 #### 1. Update the Project Path
 
-Before running anything, open `codes/config.yaml` and set `project_root` to the **absolute path** of the repository on your machine:
+Open `codes/config.yaml` and set `project_root` to the **absolute path** of the repository on your machine:
 ```yaml
 project_root: "/your/absolute/path/to/secoem"
 ```
@@ -204,7 +203,7 @@ To run it, the user needs to change the `famscen` parameter in `codes/config.yam
 famscen: "FTC_202407_202412_c92_sc100"
 ```
 
-To run it, follow the same steps than in [Example 1](#example-1-ftc_2024_10).
+and follow the same steps than in [Example 1](#example-1-ftc_2024_10).
 
 ## Repository Structure
 
