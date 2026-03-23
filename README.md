@@ -6,8 +6,9 @@
 3. [Configuration](#configuration)
 4. [Running the Simulation](#running-the-simulation)
 5. [Output and Results](#output-and-results)
-6. [Repository Structure](#repository-structure)
-7. [Notes](#notes)
+6. [Examples](#examples)
+7. [Repository Structure](#repository-structure)
+8. [Notes](#notes)
 
 ---
 
@@ -63,24 +64,6 @@ pip install .
 ```
 This automatically installs all packages listed in `pyproject.toml`.
 
-### 4. Update the Project Path
-
-Before running anything, open `codes/config.yaml` and set `project_root` to the **absolute path** of the repository on your machine:
-```yaml
-project_root: "/your/absolute/path/to/secoem"
-```
-> This step is required for the model to correctly locate data and scenario files. The default value will not work on your local machine.
-
-### 5. Run the Example
-
-Navigate to the `codes/` directory and execute the model:
-```sh
-cd codes
-python ec_run.py
-```
-
-The repository includes a ready-to-run example that requires no additional data download (see [Example](#example)). Results will be saved to the `results/` directory.
-
 ---
 
 ## Configuration
@@ -100,7 +83,7 @@ MODE: 'multiscen'
 # Problem definition
 PROB: ["ec"]
 probl: 'ec'
-famscen: "FTC_202407_202412_c92_sc100_DA"
+famscen: "FTC_2024_10"
 include_h2: true
 n_days: 1
 project_root: "~/secoem"
@@ -129,7 +112,9 @@ numscenfile: "numscen.txt"
 
 ## Scenarios
 
-Put the scenario files in Pyomo format into `/scenarios`. The naming format is important: scenario files should follow the format `famscen-scenario_number.dat`. For example, for `famscen FTC_10_2024`, the files should be named `FTC_10_2024-001.dat`, etc.
+The scenario files in Pyomo format must be placed in the `/scenarios` directory. 
+
+The naming format is important: scenario files should follow the format `famscen-scenario_number.dat`. For example, for the family of scenarios `FTC_10_2024` (`famscen: FTC_10_2024`), the scenario files should be named `FTC_10_2024-001.dat`, `FTC_10_2024-002.dat`, etc.
 
 ---
 
@@ -157,10 +142,18 @@ This will:
 - Create optimal bids for the EC
 - Store results in the `results/` directory
 
-## Example
+## Output and Results
 
-The repository contains a ready-to-run example that requires no additional data download. It is configured via the default `config.yaml` and uses the scenario family `FTC_2024_10`.
-If desired, there is a more complicated 100-scenario example included as well named `FTC_202407_202412_c92_sc100`. Running this example is significantly more computationally heavy.
+- The results of the optimization will be stored in the `results/` directory.
+- The output includes scheduled energy production, consumption, and trading strategies.
+
+The repository includes two ready-to-run examples that requires no additional data download (see [Examples](#examples)).
+
+---
+
+## Examples
+
+The repository contains two ready-to-run examples that require no additional data download. They both contain the following assets:
 
 ### Energy Community Assets
 
@@ -174,16 +167,44 @@ If desired, there is a more complicated 100-scenario example included as well na
 
 All parameters can be adjusted in their corresponding files.
 
-The scenario tree is a 100-scenario tree for each day.
-
 ---
 
-## Output and Results
 
-- The results of the optimization will be stored in the `results/` directory.
-- The output includes scheduled energy production, consumption, and trading strategies.
+### Example 1: `FTC_2024_10`()
 
----
+Example 1 is configured via the default `config.yaml` and uses the scenario family `FTC_2024_10`.
+
+To run this example, once you have [set up the environment](#setting-up-the-environment), do:
+
+#### 1. Update the Project Path
+
+Before running anything, open `codes/config.yaml` and set `project_root` to the **absolute path** of the repository on your machine:
+```yaml
+project_root: "/your/absolute/path/to/secoem"
+```
+> This step is required for the model to correctly locate data and scenario files. The default value will not work on your local machine.
+
+#### 2. Run the Example
+
+Navigate to the `codes/` directory and execute the model:
+```sh
+cd codes
+python ec_run.py
+```
+
+After execution, the results will be stored in the `results/FTC_2024_10` directory.
+
+
+### Example 2: `FTC_202407_202412_c93_sc100`
+
+This is an example with 100 scenarios and uses the scenario family `FTC_202407_202412_c92_sc100`. Running this example is significantly more computationally heavy.
+
+To run it, the user needs to change the `famscen` parameter in `codes/config.yaml` to `FTC_202407_202412_c92_sc100`:
+```yaml
+famscen: "FTC_202407_202412_c92_sc100"
+```
+
+To run it, follow the same steps than in [Example 1](#example-1-ftc_2024_10).
 
 ## Repository Structure
 
