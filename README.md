@@ -129,7 +129,7 @@ numscenfile: "numscen.txt"
 
 ## Scenarios
 
-Put the scenario files in Pyomo format into `/scenarios`. The naming format is important: scenario files should follow the format `famscen-scenario_number.dat`. For example, for `famscen FTC_10_2-24`, the files should be named `FTC_10_2023_12-001.dat`, etc.
+Put the scenario files in Pyomo format into `/scenarios`. The naming format is important: scenario files should follow the format `famscen-scenario_number.dat`. For example, for `famscen FTC_10_2024`, the files should be named `FTC_10_2024-001.dat`, etc.
 
 ---
 
@@ -160,6 +160,7 @@ This will:
 ## Example
 
 The repository contains a ready-to-run example that requires no additional data download. It is configured via the default `config.yaml` and uses the scenario family `FTC_2024_10`.
+If desired, there is a more complicated 100-scenario example included as well named `FTC_202407_202412_c92_sc100`. Running this example is significantly more computationally heavy.
 
 ### Energy Community Assets
 
