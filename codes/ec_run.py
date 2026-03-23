@@ -340,8 +340,8 @@ for sim in SIMS:
 
         # read the last‐hour values for our chosen scenario sOR
         instance.SOCini      = read_last_value(os.path.join(bess_file,"socV.txt"), prev_sOR)
-        instance.LOH_ini     = read_last_value(os.path.join(hyd_dir,"LOH.txt"),    prev_sOR)
         if include_h2:
+            instance.LOH_ini     = read_last_value(os.path.join(hyd_dir,"LOH.txt"),    prev_sOR)
             instance.iEL_on_ini  = read_last_value(os.path.join(hyd_dir,"iEL_on.txt"),  prev_sOR)
             instance.iEL_sb_ini  = read_last_value(os.path.join(hyd_dir,"iEL_sb.txt"),  prev_sOR)
             instance.iEL_off_ini = read_last_value(os.path.join(hyd_dir,"iEL_off.txt"), prev_sOR)
