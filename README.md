@@ -1,4 +1,4 @@
-# SECOEM: Energy Community Optimization with Pyomo
+# SECOEM: Stochastic Energy Community Optimization in Energy Markets with Pyomo
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -14,7 +14,7 @@
 
 ## Introduction
 
-**SECOEM** is an optimization model for an energy community interacting with the electricity market to satisfy its demand at the minimum cost and make the most of excess variable renewable generation. The model is implemented using the **Pyomo** library.
+**SECOEM** is an optimization model for an energy community participating in electricity markets to satisfy its demand at the minimum cost and make the most of excess variable renewable generation. The model is implemented using the **Pyomo** library.
 The energy community consists of:
 - **Flexible Demand** (implicit modeling)
 - **Wind Farm**
@@ -24,7 +24,7 @@ The energy community consists of:
 
 The problem is formulated as a **multi-stage stochastic programming model** for optimal multi-market participation under price and variable renewable uncertainty. It considers internal electricity demand, and hydrogen demand if the hydrogen chain is activated.
 
-The repository includes two ready-to-run examples that requires no additional data download (see [Examples](#examples)).
+The repository includes two ready-to-run examples that require no additional data download (see [Examples](#examples)).
 
 ---
 
@@ -68,7 +68,7 @@ This automatically installs all packages listed in `pyproject.toml`.
 
 ## Configuration
 
-Before running the simulation, you must configure the `config.yaml` file located in the `codes/` directory. This file controls all key parameters of the model:
+Before running the model, you must configure the `config.yaml` file located in the `codes/` directory. This file controls all key parameters of the model:
 
 ```yaml
 # Data file names
@@ -108,9 +108,8 @@ numscenfile: "numscen.txt"
 | `include_h2` | Set to `true` to include the hydrogen chain, `false` to run electricity-only model |
 | `MODE` | Run mode — use `'multiscen'` for stochastic multi-scenario optimization |
 
----
 
-## Scenarios
+### Scenarios
 
 The scenario files in Pyomo format must be placed in the `/scenarios` directory. 
 
@@ -166,8 +165,6 @@ The repository contains two ready-to-run examples that require no additional dat
 
 All parameters can be adjusted in their corresponding files.
 
----
-
 
 ### Example 1: `FTC_2024_10`
 
@@ -204,6 +201,8 @@ famscen: "FTC_202407_202412_c92_sc100"
 ```
 
 and follow the same steps than in [Example 1](#example-1-ftc_2024_10).
+
+---
 
 ## Repository Structure
 
