@@ -1,19 +1,20 @@
-# SECOEM: Energy Community Optimization with Pyomo
+# SECOEM: Stochastic Energy Community Optimization in Energy Markets with Pyomo
 
 ## Table of Contents
 1. [Introduction](#introduction)
 2. [Setting Up the Environment](#setting-up-the-environment)
 3. [Configuration](#configuration)
-4. [Running the Simulation](#running-the-simulation)
+4. [Running the Models](#running-the-models)
 5. [Output and Results](#output-and-results)
-6. [Repository Structure](#repository-structure)
-7. [Notes](#notes)
+6. [Examples](#examples)
+7. [Repository Structure](#repository-structure)
+8. [Notes](#notes)
 
 ---
 
 ## Introduction
 
-**SECOEM** is an optimization model for an energy community interacting with the electricity market to maximize profits. The model is implemented using the **Pyomo** library.
+**SECOEM** is an optimization model for an energy community participating in electricity markets to satisfy its demand at the minimum cost and make the most of excess variable renewable generation. The model is implemented using the **Pyomo** library.
 The energy community consists of:
 - **Flexible Demand** (implicit modeling)
 - **Wind Farm**
@@ -22,6 +23,8 @@ The energy community consists of:
 - **Hydrogen Chain** (optional): electrolyzer, hydrogen storage, fuel cell, and hydrogen demand
 
 The problem is formulated as a **multi-stage stochastic programming model** for optimal multi-market participation under price and variable renewable uncertainty. It considers internal electricity demand, and hydrogen demand if the hydrogen chain is activated.
+
+The repository includes two ready-to-run examples that require no additional data download (see [Examples](#examples)).
 
 ---
 
@@ -34,36 +37,38 @@ This project requires **Python 3.11+**.
 git clone https://github.com/mmobec/secoem.git
 cd secoem
 ```
-### 2. Virtual Environment
-It is recommended to create a virtual environment for this repository to avoid version conflicts. A virtual environment can be created with `venv`
+
+### 2. Create and Activate a Virtual Environment
+
+It is recommended to create a virtual environment to avoid version conflicts. Create one with:
 ```sh
 python -m venv .venv
 ```
-where `.venv` is the name of the environment. Once created, it can be activated on Linux and Mac with
+
+Then activate it — on **Linux/Mac**:
 ```sh
 source .venv/bin/activate
 ```
-and on Windows with
+On **Windows**:
 ```sh
 .venv\Scripts\activate
 ```
 
+> More information: [Python `venv` documentation](https://docs.python.org/3/library/venv.html)
+
 ### 3. Install Dependencies
-We recommend installation of all required packages with `pip`. The instruction 
+
+With the virtual environment active, install all required packages from the root of the repository:
 ```sh
 pip install .
 ```
-automatically installs all required packages in `pyproject.toml`:
-
-More information:
-[Python `venv` documentation](https://docs.python.org/3/library/venv.html)
-
+This automatically installs all packages listed in `pyproject.toml`.
 
 ---
 
 ## Configuration
 
-Before running the simulation, you must configure the `config.yaml` file located in the `codes/` directory. This file controls all key parameters of the model:
+Before running the model, you must configure the `config.yaml` file located in the `codes/` directory. This file controls all key parameters of the model:
 
 ```yaml
 # Data file names
@@ -78,7 +83,7 @@ MODE: 'multiscen'
 # Problem definition
 PROB: ["ec"]
 probl: 'ec'
-famscen: "FTC_202407_202412_c92_sc100_DA"
+famscen: "FTC_2024_10"
 include_h2: true
 n_days: 1
 project_root: "~/secoem"
@@ -103,24 +108,25 @@ numscenfile: "numscen.txt"
 | `include_h2` | Set to `true` to include the hydrogen chain, `false` to run electricity-only model |
 | `MODE` | Run mode — use `'multiscen'` for stochastic multi-scenario optimization |
 
+
+### Scenarios
+
+The scenario files in Pyomo format must be placed in the `/scenarios` directory. 
+
+The naming format is important: scenario files should follow the format `famscen-scenario_number.dat`. For example, for the family of scenarios `FTC_10_2024` (`famscen: FTC_10_2024`), the scenario files should be named `FTC_10_2024-001.dat`, `FTC_10_2024-002.dat`, etc.
+
 ---
 
-## Scenarios
+## Running the Models
 
-Put the scenario files in pyomo format into `/scenarios`. The naming format is important: scenario files should follow the format `famscen-scenario_number.dat`. For example for `famscen FTC_10_2-24`, the files should be named `FTC_10_2023_12-001.dat` etc..
-
----
-
-## Running the Code
+Make sure you have activated your virtual environment and updated `project_root` in `config.yaml` before executing.
 
 Navigate to the `codes/` directory:
-
 ```sh
-cd ../codes
+cd codes
 ```
 
 Run the optimization model:
-
 ```sh
 python ec_run.py
 ```
@@ -131,34 +137,70 @@ python ec_run.py
 
 This will:
 - Load the configuration from `config.yaml`
-- Load the scenario data from `scenarios/` and the energy community data from `data\`
+- Load the scenario data from `scenarios/` and the energy community data from `data/`
 - Create optimal bids for the EC
 - Store results in the `results/` directory
-
-## Example
-
-The repository contains a ready-to-run example that requires no additional data download. It is configured via the default `config.yaml` and uses the scenario family `FTC_202407_202412_c92_sc100_DA`.
-
-### Energy Community Assets
-
-| Asset | Parameter | Value |
-|---|---|---|
-| BESS | Energy capacity  | 30 MWh |
-| BESS | Max charge/discharge rate  | proportional (see `ec_BESS.dat`) |
-| Wind farm | Nameplate capacity | 20 MW | (see `ec_wind.dat`)
-| Solar PV | Nameplate capacity | 15 MW | (see `ec_wind.dat`)
-| Flexible demand | Profile | Hourly electrical demand (see `data/demand/`) |
-
-All parameters can be adjusted in their corresponding files.
-
-The scenario tree is a 100-scenario tree for each day.
-
----
 
 ## Output and Results
 
 - The results of the optimization will be stored in the `results/` directory.
 - The output includes scheduled energy production, consumption, and trading strategies.
+
+
+---
+
+## Examples
+
+The repository contains two ready-to-run examples that require no additional data download. They both contain the following assets:
+
+### Energy Community Assets
+
+| Asset | Parameter | Value |
+|---|---|---|
+| BESS | Energy capacity | 30 MWh |
+| BESS | Max charge/discharge rate | proportional (see `ec_BESS.dat`) |
+| Wind farm | Nameplate capacity | 20 MW (see `ec_wind.dat`) |
+| Solar PV | Nameplate capacity | 15 MW (see `ec_wind.dat`) |
+| Flexible demand | Profile | Hourly electrical demand (see `data/demand/`) |
+
+All parameters can be adjusted in their corresponding files.
+
+
+### Example 1: `FTC_2024_10`
+
+Example 1 is configured via the default `config.yaml` and uses the scenario family `FTC_2024_10`.
+
+To run this example, once you have [set up the environment](#setting-up-the-environment), do:
+
+#### 1. Update the Project Path
+
+Open `codes/config.yaml` and set `project_root` to the **absolute path** of the repository on your machine:
+```yaml
+project_root: "/your/absolute/path/to/secoem"
+```
+> This step is required for the model to correctly locate data and scenario files. The default value will not work on your local machine.
+
+#### 2. Run the Example
+
+Navigate to the `codes/` directory and execute the model:
+```sh
+cd codes
+python ec_run.py
+```
+
+After execution, the results will be stored in the `results/FTC_2024_10` directory.
+
+
+### Example 2: `FTC_202407_202412_c93_sc100`
+
+This is an example with 100 scenarios and uses the scenario family `FTC_202407_202412_c92_sc100`. Running this example is significantly more computationally heavy.
+
+To run it, the user needs to change the `famscen` parameter in `codes/config.yaml` to `FTC_202407_202412_c92_sc100`:
+```yaml
+famscen: "FTC_202407_202412_c92_sc100"
+```
+
+and follow the same steps than in [Example 1](#example-1-ftc_2024_10).
 
 ---
 
@@ -170,24 +212,23 @@ Data is divided into two directories. The directory `data/` contains all determi
 
 **Electricity:**
 
-a. `data/ec_BESS.dat` —  data file containing the values of the battery's parameters.
+a. `data/ec_BESS.dat` — data file containing the values of the battery's parameters.
 
 b. `data/demand/` — Directory containing the electrical demand profiles.
 
-c. `data/ec_wind.dat` —  data file containing the values of the wind farm and solar PV parameters.
+c. `data/ec_wind.dat` — data file containing the values of the wind farm and solar PV parameters.
 
-d. `data/market.dat` —  data file containing the market parameters.
+d. `data/market.dat` — data file containing the market parameters.
 
 **Hydrogen:**
 
-e. `data/ec_HYD.dat` —  data file containing all hydrogen chain parameters (electrolyzer, storage, etc.).
+e. `data/ec_HYD.dat` — data file containing all hydrogen chain parameters (electrolyzer, storage, etc.).
 
 f. `data/demand_h2/` — Directory containing hydrogen demand profiles, analogous to `data/demand/` for electrical demand.
 
 **Scenarios:**
 
-g. `scenarios/famscen/famscen-SIM.dat` —  data file containing the values of all scenarios (electricity market prices, wind and PV generation). It also contains the cluster structure to represent the scenario tree.
-
+g. `scenarios/famscen/famscen-SIM.dat` — data file containing the values of all scenarios (electricity market prices, wind and PV generation). It also contains the cluster structure to represent the scenario tree.
 
 ### 2. Code Files
 
@@ -209,8 +250,7 @@ They are indexed by scenario family. This means that if the code has been execut
 
 ### 4. Mathematical Formulation Files
 
-An updated mathematical formulation in `LaTeX` of the optimization models is maintained in the `model_formulation/` directory
-
+An updated mathematical formulation in LaTeX of the optimization models is maintained in the `model_formulation/` directory.
 
 ---
 
@@ -225,7 +265,7 @@ An updated mathematical formulation in `LaTeX` of the optimization models is mai
 
 ### License
 
-This project is licensed under the GNU License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the GNU License — see the [LICENSE](LICENSE) file for details.
 
 ### Contact
 

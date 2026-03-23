@@ -7,9 +7,9 @@ MODE: 'multiscen'
 
 PROB: ["ec"]
 probl: 'ec'
-famscen: "FTC_202407_202412_c92_sc100"
+famscen: "FTC_2024_10"
 include_h2: false
-n_days: 1
+n_days: 3
 project_root: "~/secoem" 
 
 pathdem: "data/demand/"
