@@ -155,13 +155,13 @@ The repository contains two ready-to-run examples that require no additional dat
 
 ### Energy Community Assets
 
-| Asset | Parameter | Value |
-|---|---|---|
-| BESS | Energy capacity | 30 MWh |
-| BESS | Max charge/discharge rate | proportional (see `ec_BESS.dat`) |
-| Wind farm | Nameplate capacity | 20 MW (see `ec_wind.dat`) |
-| Solar PV | Nameplate capacity | 15 MW (see `ec_wind.dat`) |
-| Flexible demand | Profile | Hourly electrical demand (see `data/demand/`) |
+| Asset           | Parameter                  | Description                                      | Value         |
+|------------------|----------------------------|--------------------------------------------------|---------------|
+| BESS            | Emax           | Maximum energy storage capacity                 | 30 MWh        |
+| BESS            | Dmax  | Maximum rate of charge/discharge (proportional) | See `ec_BESS.dat` |
+| Wind farm       | Pavg         | Maximum power generation capacity               | 20 MW         |
+| Solar PV        | Pavg_PV         | Maximum power generation capacity               | 15 MW         |
+| Flexible demand | profile                    | Hourly electrical demand profile                | See `data/demand/` |
 
 All parameters can be adjusted in their corresponding files.
 
