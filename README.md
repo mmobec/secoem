@@ -157,11 +157,18 @@ The repository contains two ready-to-run examples that require no additional dat
 
 | Asset           | Parameter                  | Description                                      | Value         |
 |------------------|----------------------------|--------------------------------------------------|---------------|
-| BESS            | Emax           | Maximum energy storage capacity                 | 30 MWh        |
-| BESS            | Dmax  | Maximum rate of charge and discharge (proportional) | See `ec_BESS.dat` |
-| Wind farm       | Pavg         | Maximum power generation capacity               | 20 MW         |
-| Solar PV        | Pavg_PV         | Maximum power generation capacity               | 15 MW         |
-| Flexible demand | profile                    | Hourly electrical demand profile                | See `data/demand/` |
+| BESS            | Emax                        | Maximum energy storage capacity [MWh]            | 30 MWh        |
+| BESS            | Dmax                        | Maximum rate of charge and discharge [MW]        | 8 MW |
+| BESS            | RTE                         | Round-trip efficiency (values between 0 and 1)   | 0.8 |
+| BESS            | SOCmin                      | Minimum state of charge (values between 0 and 1) | 0.1 |
+| BESS            | SOCmax                      | Maximum state of charge (values between 0 and 1) | 0.9 |
+| BESS            | SOCini                      | Initial state of charge (values between 0 and 1) | 0.4 |
+| BESS            | SOCfin                      | Final state of charge (values between 0 and 1)   | 0.4 |
+| BESS            | cyc_max                     | Lifetime [no. of cycles]                         | 10,000 |
+| BESS            | B_sp_cost                   | Replacement cost [€/MWh]                         | 350,000 |
+| Wind farm       | Pavg                        | Maximum power generation capacity [MW]           | 20 MW         |
+| Solar PV        | Pavg_PV                     | Maximum power generation capacity [MW]           | 15 MW         |
+| Flexible demand | profile                     | Hourly electrical demand profile [MWh]           | See `data/demand/` |
 
 All parameters can be adjusted in their corresponding files (`data/ec_BESS.dat`, `data/ec_wind.dat`, `data/demand`).
 
