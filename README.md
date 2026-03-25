@@ -158,12 +158,12 @@ The repository contains two ready-to-run examples that require no additional dat
 | Asset           | Parameter                  | Description                                      | Value         |
 |------------------|----------------------------|--------------------------------------------------|---------------|
 | BESS            | Emax           | Maximum energy storage capacity                 | 30 MWh        |
-| BESS            | Dmax  | Maximum rate of charge/discharge (proportional) | See `ec_BESS.dat` |
+| BESS            | Dmax  | Maximum rate of charge and discharge (proportional) | See `ec_BESS.dat` |
 | Wind farm       | Pavg         | Maximum power generation capacity               | 20 MW         |
 | Solar PV        | Pavg_PV         | Maximum power generation capacity               | 15 MW         |
 | Flexible demand | profile                    | Hourly electrical demand profile                | See `data/demand/` |
 
-All parameters can be adjusted in their corresponding files.
+All parameters can be adjusted in their corresponding files (`data/ec_BESS.dat`, `data/ec_wind.dat`, `data/demand`).
 
 Should the hydrogen chain be included using `include_h2 = true`, the following key hydrogen chain parameters are used, which can be modified in `data/ec_HYD.dat`:
 
