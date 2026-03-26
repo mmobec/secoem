@@ -1,5 +1,5 @@
 BESS_datfile: "ec_BESS.dat"
-wind_datfile: "ec_wind.dat"
+wind_datfile: "ec_RES.dat"
 market_datfile: "market.dat"
 hydrogen_datfile: "ec_HYD.dat"
 
@@ -9,7 +9,7 @@ PROB: ["ec"]
 probl: 'ec'
 famscen: "FTC_2024_10"
 include_h2: false
-n_days: 3
+n_days: 2
 project_root: "~/secoem" 
 
 pathdem: "data/demand/"
