@@ -239,9 +239,9 @@ for sim in SIMS:
             rv_index_wind = value(instance.fRVSG[value(instance.sgpw[t])])
             rv_index_solar = rv_index_wind + 1  # Next variable corresponds to PV
             # Compute wind power
-            pW_dict[(t, s)] = min(value(instance.Scen[rv_index_wind, s]), 1.0) * value(instance.Pavg)            
+            pW_dict[(t, s)] = min(value(instance.Scen[rv_index_wind, s]), 1.0) * value(instance.P_W)            
             # Compute PV power
-            pPV_dict[(t, s)] = min(value(instance.Scen[rv_index_solar, s]), 1.0) * value(instance.Pavg_PV)
+            pPV_dict[(t, s)] = min(value(instance.Scen[rv_index_solar, s]), 1.0) * value(instance.P_PV)
     # Compute mean values
     for t in instance.T:
         mean_pW_dict[t] = sum(value(instance.Prob[s]) * pW_dict[(t, s)] for s in instance.S)
@@ -864,7 +864,7 @@ for sim in SIMS:
         f.write("###### Printing Wind Power Plant Sets and Parameters #########\n\n")
         f.write(f"sgpw: {list(instance.sgpw.values())}\n")
         f.write(f"max_pW: {value(instance.max_pW)}\n")
-        f.write(f"Pavg: {value(instance.Pavg)}\n")
+        f.write(f"P_W: {value(instance.P_W)}\n")
 
     # Store pW values for each scenario
     pw_file = os.path.join(wp_path, "pW.txt")
@@ -888,7 +888,7 @@ for sim in SIMS:
         for t in instance.T:
             f.write(f"{t}: {value(instance.sgpw[t]) + 1}\n")
         
-        f.write(f"Pavg_PV: {value(instance.Pavg_PV)}\n")
+        f.write(f"P_PV: {value(instance.P_PV)}\n")
 
     # Store pPV values for each scenario
     ppv_file = os.path.join(pv_path, "pPV.txt")
@@ -1411,8 +1411,8 @@ for sim in SIMS:
     for t in T:
         rv_w = value(instance.fRVSG[value(instance.sgpw[t])])
         rv_p = rv_w + 1
-        pW_obs[t]  = min(scenO(rv_w), 1.0) * value(instance.Pavg)
-        pPV_obs[t] = min(scenO(rv_p), 1.0) * value(instance.Pavg_PV)
+        pW_obs[t]  = min(scenO(rv_w), 1.0) * value(instance.P_W)
+        pPV_obs[t] = min(scenO(rv_p), 1.0) * value(instance.P_PV)
     
     # Day-ahead price
     lD_price = {t: scenO(t) for t in T}

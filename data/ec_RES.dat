@@ -2,11 +2,11 @@
 
 # Installed Wind Capacity - The wind capacity factors in the scenarios are multiplied by this quantity in "ec_run.py".
 # Not part of the mathematical formulation
-param Pavg 		  := 20;   
+param P_W 		  := 20;   
 
 # Installed Solar Capacity - The solar capacity factors in the scenarios are multiplied by this quantity in "ec_run.py".
 # Not part of the mathematical formulation
-param Pavg_PV     := 15;  
+param P_PV     := 15;  
 
 # Stage associated to each time period of wind and solar generation.
 #              t SG   

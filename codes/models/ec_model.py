@@ -89,7 +89,7 @@ model.RDFD = pyo.Param(model.T, within=pyo.NonNegativeReals)   # Downwards reser
 # ----------------------------------------------------------
 
 model.sgpw = pyo.Param(pyo.RangeSet(1, model.nT))   # stage associated to wind and PV production each hour
-model.Pavg     = pyo.Param(within=pyo.Reals)    # Wind nominal power [MW]
+model.P_W     = pyo.Param(within=pyo.Reals)    # Wind nominal power [MW]
 model.pW = pyo.Param(model.T, model.S, within=pyo.NonNegativeReals, mutable=True)  # wind production
 model.max_pW = pyo.Param(within=pyo.NonNegativeReals, mutable=True)                # maximum wind capacity
 
@@ -97,7 +97,7 @@ model.max_pW = pyo.Param(within=pyo.NonNegativeReals, mutable=True)             
 # 5. Solar PV
 # ----------------------------------------------------------
 
-model.Pavg_PV  = pyo.Param(within=pyo.Reals)    # PV nominal power [MW]
+model.P_PV  = pyo.Param(within=pyo.Reals)    # PV nominal power [MW]
 model.pPV = pyo.Param(model.T, model.S, within=pyo.NonNegativeReals, mutable=True) 
 model.max_pPV = pyo.Param(within=pyo.NonNegativeReals, mutable=True)
 

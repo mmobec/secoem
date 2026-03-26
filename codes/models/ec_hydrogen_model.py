@@ -89,7 +89,7 @@ model.RDFD = pyo.Param(model.T, within=pyo.NonNegativeReals)   # Downwards reser
 # ----------------------------------------------------------
 
 model.sgpw = pyo.Param(pyo.RangeSet(1, model.nT))   # stage associated to wind and PV production each hour
-model.Pavg     = pyo.Param(within=pyo.Reals)    # Wind nominal power [MW]
+model.P_W     = pyo.Param(within=pyo.Reals)    # Wind nominal power [MW]
 model.pW = pyo.Param(model.T, model.S, within=pyo.NonNegativeReals, mutable=True)  # wind production
 model.max_pW = pyo.Param(within=pyo.NonNegativeReals, mutable=True)                # maximum wind capacity
 
@@ -97,7 +97,7 @@ model.max_pW = pyo.Param(within=pyo.NonNegativeReals, mutable=True)             
 # 5. Solar PV
 # ----------------------------------------------------------
 
-model.Pavg_PV  = pyo.Param(within=pyo.Reals)    # PV nominal power [MW]
+model.P_PV  = pyo.Param(within=pyo.Reals)    # PV nominal power [MW]
 model.pPV = pyo.Param(model.T, model.S, within=pyo.NonNegativeReals, mutable=True) 
 model.max_pPV = pyo.Param(within=pyo.NonNegativeReals, mutable=True)
 
@@ -122,15 +122,6 @@ model.C_BESS = model.B_sp_cost/model.cyc_max              # cost per unit of bat
 # =============================================================================
 
 # 7.1 Electrolyzer
-
-# Set
-model.Ndown_EL = pyo.Param(within=pyo.PositiveIntegers)     # minimum off-time periods [h]
-# def NdownEL_init(m, t):
-#     # build set of future periods for minimum down-time
-#     start = t + 1
-#     end   = min(t + pyo.value(m.Ndown_EL), pyo.value(m.nT))
-#     return list(range(start, end+1)) if start <= end else []
-# model.NEL_down = pyo.Set(model.T, initialize=NdownEL_init, ordered=True)
 
 # Parameters
 model.min_EL_frac = pyo.Param(within=pyo.NonNegativeReals)  # Minimum input power fraction when activated [0-1] 
