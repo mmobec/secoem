@@ -1,51 +1,50 @@
 # Hydrogen Market paramterers:
 param lambda_H    := 3;         # Hydrogen cost [€/kg]
-param lambda_wat  := 0.004;   # water cost [€/L]
+param lambda_wat  := 0.004;     # Water cost [€/L]
 
 # Parameters for Hydrogen Demand
-param HDEM_press	:= 700; # Hydrogen demand/sold pressure [bar]
-param HEL_press		:= 30;  # ELectrolyzer operating pressure [bar]
-param can_sell_H2 	:= 1;   # Hydrogen can be sold (1), or cannot be sold (0)
+param HDEM_press	:= 700;     # Hydrogen demand/sold pressure [bar]
+param HEL_press		:= 30;      # Electrolyzer's operating pressure [bar]
+param can_sell_H2 	:= 1;       # Hydrogen can be sold (1), or cannot be sold (0)
 
 # ELECTROLYZER:
-param min_EL_frac := 0.2;   # Minimum input power fraction when activated [0-1].
-param P_EL_nom    := 10;   	# Electrolyzer nominal power [MW].
-param eta_EL      := 0.05;   # Electrolyzer efficiency [MWh/kg].
-# param Ndown_EL    := 3;   # Minimum number of off-time periods after shut down [h].
-param sp_wat_EL   := 15;   # specific water consumption [L/kg H2]
-param SB_frac     := 0.05;   # standby fraction of power consumption [0-1].
-param EL_lifetime := 80000;   # Electrolyzer lifetime [h].
-param EL_repl_cost   := 1000000;  # Electrolyzer replacement cost [€/MW].
-param lambda_warm_st := 0.8;   # warm startup cost [€/MW per event].
-param lambda_cold_st := 8.2;   # cold startup cost [€/MW per event]
+param min_EL_frac := 0.2;           # Minimum input power fraction when activated [0-1].
+param P_EL_nom    := 10;   	        # Electrolyzer nominal power [MW].
+param eta_EL      := 0.05;          # Electrolyzer efficiency [MWh/kg].
+param sp_wat_EL   := 15;            # specific water consumption [L/kg H2]
+param SB_frac     := 0.05;          # standby fraction of power consumption [0-1].
+param EL_lifetime := 80000;         # Electrolyzer lifetime [h].
+param EL_repl_cost   := 1000000;    # Electrolyzer replacement cost [€/MW].
+param lambda_warm_st := 0.8;        # warm startup cost [€/MW per event].
+param lambda_cold_st := 8.2;        # cold startup cost [€/MW per event]
 # The sum of iEL_on_ini + iEL_sb_ini + iEL_off_ini must be 1
-param iEL_on_ini  := 0; # Initial value for on state binary variable [0,1]
-param iEL_sb_ini  := 0; # Initial value for standby state binary variable [0,1]
-param iEL_off_ini  := 1; # Initial value for off state binary variable [0,1]
+param iEL_on_ini  := 0;             # Initial value for on state binary variable [0,1]
+param iEL_sb_ini  := 0;             # Initial value for standby state binary variable [0,1]
+param iEL_off_ini  := 1;            # Initial value for off state binary variable [0,1]
 
 # COMPRESSOR:
-param spec_COMP	  := 0.0035;   # Compressor specific consumption [MWh/kg].
+param spec_COMP	  := 0.0035;    # Compressor specific consumption [MWh/kg].
 param P_COMP_nom    := 0.7;   	# Compressor nominal power [MW].
 
 # STORAGE TANK:
-param H_tank_cap  := 750;   # Tank capacity [kg].
+param H_tank_cap  := 750;       # Tank capacity [kg].
 param P_tank      := 300;   	# Tank charge/discharge power [kg/h].
-param eta_tank    := 0.99;   # Round Trip Efficiency.
-param LOH_min     := 0.1;     # Tank's minimum LOH.
-param LOH_max     := 0.99;     # Tank's maximum LOH.
-param LOH_ini      := 0.4;   # Tank's initial LOH (MUST BE >= LOH_min!!!)
-param LOH_fin      := 0.4;   # Tank's final   LOH (MUST BE >= LOH_min!!!)
+param eta_tank    := 0.99;      # Round Trip Efficiency.
+param LOH_min     := 0.1;       # Tank's minimum LOH.
+param LOH_max     := 0.99;      # Tank's maximum LOH.
+param LOH_ini      := 0.4;      # Tank's initial LOH (MUST BE >= LOH_min!!!)
+param LOH_fin      := 0.4;      # Tank's final   LOH (MUST BE >= LOH_min!!!)
 
-# FUEl CELL:
-param min_FC_frac := 0.2;   # Minimum output power fraction when activated [0-1].
-param P_FC_nom    := 6;   	# Fuel cell nominal power [MW].
-param eta_FC      := 60;   # Fuel cell efficiency [kg/MWh].
-param SB_frac_FC  := 0.1;   # standby fraction of power consumption [0-1].
-param FC_lifetime := 40000;   # FC lifetime [h].
+# FUEL CELL:
+param min_FC_frac := 0.2;           # Minimum output power fraction when activated [0-1].
+param P_FC_nom    := 6;   	        # Fuel cell nominal power [MW].
+param eta_FC      := 60;            # Fuel cell efficiency [kg/MWh].
+param SB_frac_FC  := 0.1;           # standby fraction of power consumption [0-1].
+param FC_lifetime := 40000;         # FC lifetime [h].
 param FC_repl_cost      := 900000;  # FC replacement cost [€/MW].
-param lambda_warm_st_FC := 0.8;   # warm startup cost [€/MW per event].
-param lambda_cold_st_FC := 8.2;   # cold startup cost [€/MW per event]
+param lambda_warm_st_FC := 0.8;     # warm startup cost [€/MW per event].
+param lambda_cold_st_FC := 8.2;     # cold startup cost [€/MW per event]
 # The sum of iFC_on_ini + iFC_sb_ini + iFC_off_ini must be 1
-param iFC_on_ini  := 0; # Initial value for on state binary variable [0,1]
-param iFC_sb_ini  := 0; # Initial value for standby state binary variable [0,1]
-param iFC_off_ini  := 1; # Initial value for off state binary variable [0,1]
+param iFC_on_ini  := 0;             # Initial value for on state binary variable [0,1]
+param iFC_sb_ini  := 0;             # Initial value for standby state binary variable [0,1]
+param iFC_off_ini  := 1;            # Initial value for off state binary variable [0,1]

@@ -155,15 +155,44 @@ The repository contains two ready-to-run examples that require no additional dat
 
 ### Energy Community Assets
 
-| Asset | Parameter | Value |
-|---|---|---|
-| BESS | Energy capacity | 30 MWh |
-| BESS | Max charge/discharge rate | proportional (see `ec_BESS.dat`) |
-| Wind farm | Nameplate capacity | 20 MW (see `ec_wind.dat`) |
-| Solar PV | Nameplate capacity | 15 MW (see `ec_wind.dat`) |
-| Flexible demand | Profile | Hourly electrical demand (see `data/demand/`) |
+| Asset           | Parameter                  | Description                                      | Value         |
+|------------------|----------------------------|--------------------------------------------------|---------------|
+| BESS            | Emax                        | Maximum energy storage capacity [MWh]            | 30 MWh        |
+| BESS            | Dmax                        | Maximum rate of charge and discharge [MW]        | 8 MW |
+| BESS            | RTE                         | Round-trip efficiency (values between 0 and 1)   | 0.8 |
+| BESS            | SOCmin                      | Minimum state of charge (values between 0 and 1) | 0.1 |
+| BESS            | SOCmax                      | Maximum state of charge (values between 0 and 1) | 0.9 |
+| BESS            | SOCini                      | Initial state of charge (values between 0 and 1) | 0.4 |
+| BESS            | SOCfin                      | Final state of charge (values between 0 and 1)   | 0.4 |
+| BESS            | cyc_max                     | Lifetime [no. of cycles]                         | 10,000 |
+| BESS            | B_sp_cost                   | Replacement cost [€/MWh]                         | 350,000 |
+| Wind farm       | Pavg                        | Maximum power generation capacity [MW]           | 20 MW         |
+| Solar PV        | Pavg_PV                     | Maximum power generation capacity [MW]           | 15 MW         |
+| Flexible demand | profile                     | Hourly electrical demand profile [MWh]           | See `data/demand/` |
 
-All parameters can be adjusted in their corresponding files.
+All parameters can be adjusted in their corresponding files (`data/ec_BESS.dat`, `data/ec_wind.dat`, `data/demand`).
+
+Should the hydrogen chain be included using `include_h2 = true`, the following key hydrogen chain parameters are used, which can be modified in `data/ec_HYD.dat`:
+
+
+| Component              | Parameter                  | Description                                      | Value         |
+|------------------------|----------------------------|--------------------------------------------------|---------------|
+| **Hydrogen Market**    | `lambda_H`                | Hydrogen cost [€/kg]                            | 3             |
+|                        | `lambda_wat`              | Water cost [€/L]                                | 0.004         |
+| **Electrolyzer**       | `P_EL_nom`                | Nominal power [MW]                              | 10            |
+|                        | `eta_EL`                  | Efficiency [MWh/kg]                             | 0.05          |
+|                        | `sp_wat_EL`               | Specific water consumption [L/kg H2]            | 15            |
+|                        | `EL_lifetime`             | Lifetime [h]                                    | 80,000        |
+|                        | `EL_repl_cost`            | Replacement cost [€/MW]                         | 1,000,000     |
+| **Compressor**         | `spec_COMP`               | Specific consumption [MWh/kg]                   | 0.0035        |
+|                        | `P_COMP_nom`              | Nominal power [MW]                              | 0.7           |
+| **Storage Tank**       | `H_tank_cap`              | Tank capacity [kg]                              | 750           |
+|                        | `P_tank`                  | Charge/discharge power [kg/h]                   | 300           |
+|                        | `eta_tank`                | Round trip efficiency                           | 0.99          |
+| **Fuel Cell**          | `P_FC_nom`                | Nominal power [MW]                              | 6             |
+|                        | `eta_FC`                  | Efficiency [kg/MWh]                             | 60            |
+|                        | `FC_lifetime`             | Lifetime [h]                                    | 40,000        |
+|                        | `FC_repl_cost`            | Replacement cost [€/MW]                         | 900,000       |
 
 
 ### Example 1: `FTC_2024_10`
