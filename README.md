@@ -115,6 +115,20 @@ The scenario files in Pyomo format must be placed in the `/scenarios` directory.
 
 The naming format is important: scenario files should follow the format `famscen-scenario_number.dat`. For example, for the family of scenarios `FTC_10_2024` (`famscen: FTC_10_2024`), the scenario files should be named `FTC_10_2024-001.dat`, `FTC_10_2024-002.dat`, etc.
 
+#### Scenario File Structure
+
+Each scenario file is a Pyomo-format `.dat` file encoding the stochastic scenario tree for one simulation day. It must define the following:
+
+| Parameter / Set | Description |
+|----------------|-------------|
+| `param nS` | Number of leaf scenarios |
+| `param nSG` | Number of stages |
+| `param nRVSG` | Number of random variables at each stage |
+| `param ScenF` | forecasted scenarios |
+| `param ScenO` | observed scenario |
+| `param Scen0 (tr)` | Full scenario matrix `nS × N` — each row is one leaf scenario |
+| `param Prob0` | Probability of each leaf scenario (must sum to 1) |
+| `set c[sg, s]` | lists all leaf scenarios belonging to the same culster for each stage and scenario |
 ---
 
 ## Running the Models
@@ -194,20 +208,6 @@ Should the hydrogen chain be included using `include_h2 = true`, the following k
 |                        | `FC_lifetime`             | Lifetime [h]                                    | 40,000        |
 |                        | `FC_repl_cost`            | Replacement cost [€/MW]                         | 900,000       |
 
-### Scenario File Structure
-
-Each scenario file is a Pyomo-format `.dat` file encoding the stochastic scenario tree for one simulation day. It must define the following:
-
-| Parameter / Set | Description |
-|----------------|-------------|
-| `param nS` | Number of leaf scenarios |
-| `param nSG` | Number of stages |
-| `param nRVSG` | Number of random variables at each stage |
-| `param ScenF` | forecasted scenarios |
-| `param ScenO` | observed scenario |
-| `param Scen0 (tr)` | Full scenario matrix `nS × N` — each row is one leaf scenario |
-| `param Prob0` | Probability of each leaf scenario (must sum to 1) |
-| `set c[sg, s]` | lists all leaf scenarios belonging to the same culster for each stage and scenario |
 
 ### Example 1: `FTC_2024_10`
 
