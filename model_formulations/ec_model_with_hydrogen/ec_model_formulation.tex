@@ -32,8 +32,8 @@
 
 \setlength{\parindent}{0pt}
 
-\title{EC Model Formulation}
-\author{F.- Javier Heredia Cervera, Ignasi Mañé, Albert Sol\`a Vilalta}
+\title{EC Model Formulation Including Hydrogen Chain}
+\author{Andrea Ademollo, Albert Sol\`a Vilalta, Carlo Carcasci, F.- Javier Heredia Cervera}
 \date{\today}
 
 
@@ -859,7 +859,7 @@ In constraints \eqref{EQ:H2_direct_switch_EL} and \eqref{EQ:H2_direct_switch_CP}
 
 \subsection{Day Ahead Market}
 
-\begin{tabularx}{\textwidth}{l l}
+\begin{tabularx}{\textwidth}{l X}
     \textbf{Sets:} \\
     $\mathcal{SSD}$ (\verb|Ssd|) & $\{(t, l, j) \in \mathcal{T} \times \Omega \times \Omega
         \hspace{2mm} | \hspace{2mm} l \neq j, \hspace{2mm}
@@ -1207,14 +1207,17 @@ First, we impose that the imbalance variables are nonnegative (\verb|at variable
 
 The imbalances of the EC are defined in the following equation (\verb|Imbalances|)
 \begin{equation} \label{EQ:IBDef}
+\begin{split}
   p^{IB+}_{t,\omega} - p^{IB-}_{t,\omega}
-  = e^{DA-}_{t,\omega} + W_{t,\omega} + PV_{t,\omega}
-      + d_{t,\omega} + e^{FC,on}_{t,\omega}
-  - \\
-  \Bigl(e^{DA+}_{t,\omega} + \sum_{i \in \mathcal{I}_t} e^{IM}_{i,t,\omega}
-      + fd_{t,\omega} + c_{t,\omega}
-      + e^{EL}_{t,\omega} + e^{CP}_{t,\omega} + e^{FC,sb}_{t,\omega}\Bigr) \quad \forall t \in \mathcal{T}, \ \forall \omega \in \Omega.
+  &= e^{DA-}_{t,\omega} + W_{t,\omega} + PV_{t,\omega}
+      + d_{t,\omega} + e^{FC,on}_{t,\omega} \\
+  &\quad - \Bigl(e^{DA+}_{t,\omega} + \sum_{i \in \mathcal{I}_t} e^{IM}_{i,t,\omega}
+      + fd_{t,\omega} + c_{t,\omega} \\
+  &\quad\phantom{{}-(} + e^{EL}_{t,\omega} + e^{CP}_{t,\omega} + e^{FC,sb}_{t,\omega}\Bigr)
+    \forall t \in \mathcal{T},\ \forall \omega \in \Omega.
+\end{split}
 \end{equation}
+
 
 We introduce upper and lower bounds to the imbalances, to avoid speculative behaviour (\verb|IB_pos_UB|):
 \begin{equation} \label{EQ:VPP_IB_MAX}
