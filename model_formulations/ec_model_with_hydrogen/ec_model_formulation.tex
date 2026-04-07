@@ -1,0 +1,1812 @@
+\documentclass{article}
+% Packages
+\usepackage[utf8]{inputenc}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{tabularx}
+\usepackage{xcolor}
+\usepackage{eurosym}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{geometry}
+\geometry{a4paper, total={160mm,240mm}, left=25mm, top=20mm}
+
+%\usepackage[citestyle=authoryear, maxcitenames = 2, hyperref=true]{biblatex} %Imports biblatex package
+\usepackage[citestyle=authoryear, maxcitenames = 2, hyperref=true, backref=false, abbreviate=false, maxbibnames=10]{biblatex}
+\addbibresource{references.bib}
+\usepackage{hyperref}
+
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\E}{\mathbb{E}}
+
+\newcommand{\SOC}{\text{SoC}}
+\newcommand{\soc}{\text{soc}}
+
+\newcommand{\LOH}{\text{LoH}}
+
+\newtheorem{notation}{Notation}[section]
+\newtheorem{note}{Note}[section]
+
+\setlength{\parindent}{0pt}
+
+\title{EC Model Formulation}
+\author{F.- Javier Heredia Cervera, Ignasi Mañé, Albert Sol\`a Vilalta}
+\date{\today}
+
+
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+
+We consider an energy community with the following elements:
+\begin{enumerate}
+	\item (Implicit) Flexible Demand.
+	\item Wind Farm.
+	\item Solar Farm.
+	\item Battery Energy Storage System (BESS).
+    \item Hydrogen Chain (Electrolyzer, Compressor, H$_2$ Storage, Fuel Cell).
+\end{enumerate}
+
+In the following sections we present the proposed problem formulation. Since it is quite a large model, the sets, parameters, variables, and constraints are defined on separate sections.
+
+\begin{notation}
+	In the definition of sets, parameters, and variables, we use parenthesis to denote the name of that element in the code. For example, we use $\mathcal{T}$ (\verb|T|) to denote that the set $\mathcal{T}$ has the name \verb|T| in the code.  
+\end{notation}
+
+\begin{note} \label{NOTE:ScenarioTreatment}
+	We do not distinguish in this formulation between ``complete set of scenarios'' and ``preserved set of scenarios''. This is a pre-processing step, and does not affect the formulation. 
+\end{note}
+
+\section{Fundamental Elements}
+\label{SEC:FundamentalElements}
+
+\begin{tabularx}{\textwidth}{l l}
+    \textbf{Sets:} \\
+    $\mathcal{T}$ (\verb|T|) & set of $T$ time periods $\{ 1, \dots, T \}$ [hours]. \\
+	$\mathcal{T}_0$ (\verb|T0|) & extended set of time periods $\{ 0, \dots, T \}$ [hours]. \\     
+	$\mathcal{I}$ (\verb|IM|) & set of $I$ intraday markets $\{1, \dots, I \}$. \\    
+    $\mathcal{T}_i$ (\verb|TIM|) & set of time periods in intraday market $i \in \mathcal{I}$ [hours]. \\
+	$\mathcal{I}_t$ (\verb|IMT|) & set of intraday markets where $t \in \mathcal{T}$ is a time period. \\    
+	$\Omega$ (\verb|S|) & set of scenarios. \\
+	$\mathcal{SG}$ (\verb|SG|) & set of stages $\{1, \dots, SG \}$. \\
+	$\mathcal{SG}_0$ (\verb|SG0|) & extended set of stages $\{0, \dots, SG \}$. \\     
+    $\mathcal{C}_{sg, \omega}$ (\verb|c|) & scenario cluster of scenario $\omega \in \Omega$ at stage $sg \in \mathcal{SG}_0$. \\
+    $\mathcal{RV}$ & set of random variables $\{1, \dots, nRV \}$. \\
+    $\Delta t$ (\verb|dt|) & time step\\
+    \\
+   
+    
+    \textbf{Parameters:} \\
+	$T$ (\verb|nT|) & number of time periods. \\
+	$I$ (\verb|nIM|) & number of intraday markets. \\
+	$nSG$ (\verb|nSG|) & number of stages. \\
+	$SG^{IM}_i$ (\verb|sgim|) & stage in which the price of intraday market $i \in \mathcal{I}$ is revealed. \\
+	$nRV$ (\verb|nRV|) & number of random variables. \\
+	$nRVSG_{sg}$ (\verb|nRVSG|) & number of random variables revealed at stage $sg \in \mathcal{SG}$. \\
+	$\Pi_{\omega}$ (\verb|Prob|) & probability of scenario $\omega \in \Omega$. \\
+	$S_{rv, \omega}$ (\verb|Scen|) & value of random variable $rv \in \mathcal{RV}$ in scenario $\omega \in \Omega$. \\    
+    \\
+       
+    \textbf{Variables:} \\
+	\\
+\end{tabularx}
+
+\section{Flexible Demand}
+\label{SEC:FlexibleDemand}
+
+\begin{tabularx}{\textwidth}{l l}
+    \textbf{Sets:} \\
+    $\mathcal{F}$ (\verb|FI|) & set of time intervals where a fraction of demand $c_f$ has to be met. \\ 
+    \\
+    
+    \textbf{Parameters:} \\
+    	$nF$ (\verb|nFI|) & number of intervals in $\mathcal{F}$. \\
+    $D_t$ (\verb|FD|) & central demand at $t \in \mathcal{T}$ [MWh]. \\
+    $\underline{D}_t$ (\verb|FD_L|) & minimum demand at $t \in \mathcal{T}$ (inflexible demand) [MWh]. \\
+    $\overline{D}_t$ (\verb|FD_U|) & maximum demand at $t \in \mathcal{T}$ [MWh]. \\
+    $T_f^-$ (\verb|TF_L|) & first time step of interval $f \in \mathcal{F}$ [hour]. \\
+    $T_f^+$ (\verb|TF_U|) & last time step of interval $f \in \mathcal{F}$ [hour]. \\
+    $c_f$ (\verb|coef_FD|) & fraction of demand that needs to be consumed during interval $f \in \mathcal{F}$. \\
+    $C^{FD}$ (\verb|C_FD|) & cost per unit of flexible demand used [\euro/MWh]. \\
+    \\
+       
+    \textbf{Variables:} \\
+    $fd_{t, \omega}$ (\verb|var_fd|) & flexible demand at $t \in \mathcal{T}$ under scenario $\omega \in \Omega$ (after flexibility is \\
+    & considered) [MWh]. \\
+    $afd_{t, \omega}^+$ (\verb|var_afd_p|) & auxiliary variable. Positive part of flexible demand shift from central \\
+    & demand $D_t$ [MWh]. \\
+    $afd_{t, \omega}^-$ (\verb|var_afd_m|) & auxiliary variable. Negative part of flexible demand shift from central \\
+    & demand $D_t$ [MWh]. \\
+    \\
+    \end{tabularx}
+
+First, we introduce nonnegativity constraints to the flexible demand variables (\verb|at variable| \verb|definition|)
+\begin{equation} \label{EQ:FlexDemandPos}
+	fd_{t, \omega} \geq 0, \ afd_{t, \omega}^+ \geq 0, \ afd_{t, \omega}^- \geq 0 \quad \forall t \in \mathcal{T}, \ \forall \omega \in \Omega.
+\end{equation}
+
+The flexible demand is bounded by the minimum demand and maximum demand at every time step. This is
+\begin{equation} \label{EQ:FlexDemand_UB_preliminary}
+	fd_{t, \omega} \leq \overline{D}_t \quad \forall t \in \mathcal{T}, \ \forall \omega \in \Omega
+\end{equation}
+and 
+\begin{equation} \label{EQ:FlexDemand_LB_preliminary}
+	\underline{D}_t \leq fd_{t, \omega} \quad \forall t \in \mathcal{T}, \ \forall \omega \in \Omega.
+\end{equation}
+These two constraints are weaker than their counterparts \eqref{EQ:FlexDemand_UB} and \eqref{EQ:FlexDemand_LB}. \eqref{EQ:FlexDemand_UB} and \eqref{EQ:FlexDemand_LB} guarantee that, if reserve has to be activated, flexible demand's behaviour plus reserve commitments still result in feasible actions at any time period. Hence, we do not introduce \eqref{EQ:FlexDemand_UB_preliminary} nor \eqref{EQ:FlexDemand_LB_preliminary} in the model's implementation, but only describe them here to present the model.
+
+Moreover, the total daily demand has to meet the central estimate of the demand over the day (\verb|DailyDem|): 
+\begin{equation} \label{EQ:DailyDem}
+	\sum_{t \in \mathcal{T}} fd_{t, \omega} = \sum_{t \in \mathcal{T}} D_t \quad \forall \omega \in \Omega.
+\end{equation}
+This is done to avoid meeting a lower demand over the full time horizon of the problem ($24$h), or a higher demand if the reward for downward reserve is consistently high and/or electricity prices are consistently negative. We also introduce time intervals where a certain percentage of the central demand needs to be met over that interval (\verb|InterDem|):
+\begin{equation} \label{EQ:InterDem}
+	\sum_{T_f^- \leq t \leq T_f^+} fd_{t, \omega} \geq c_f \sum_{T_f^- \leq t \leq T_f^+} D_t \quad \forall f \in \mathcal{F}, \ \forall \omega \in \Omega.
+\end{equation}
+
+To model the cost of implicit flexible demand, we introduce a penalty in the objective function to use it. This requires to split the variables $fd_{t, \omega}$ into its positive and negative parts, which is done in the following constraints (\verb|FlexDemDisplace|)
+\begin{equation} \label{EQ:FlexDemDisplace}
+	D_t - fd_{t, \omega} = afd_{t, \omega}^+ - afd_{t, \omega}^- \quad \forall t \in \mathcal{T}, \ \forall \omega \in \Omega.
+\end{equation}
+
+
+
+\section{Wind Farm}
+\label{SEC:WindFarm}
+
+\begin{tabularx}{\textwidth}{l l}
+    \textbf{Sets:} \\
+    \\
+    
+    \textbf{Parameters:} \\
+	$SG^{WP}_t$ (\verb|sgpw|) & stage in which the wind production at time $t \in \mathcal{T}$ is revealed. \\
+	$W_{t, \omega}$ (\verb|pW|) & wind production at time $t \in \mathcal{T}$ under scenario $\omega \in \Omega$ [MWh]. \\
+	$\overline{P}^W$ (\verb|max_pW|) & wind nameplate capacity [MW]. \\
+	\\  
+\end{tabularx}
+
+\section{Solar Farm}
+\label{SEC:SolarFarm}
+
+\begin{tabularx}{\textwidth}{l l}
+    \textbf{Sets:} \\
+    \\
+    
+    \textbf{Parameters:} \\
+	$PV_{t, \omega}$ (\verb|pPV|) & solar production at time $t \in \mathcal{T}$ under scenario $\omega \in \Omega$ [MWh]. \\
+	$\overline{P}^{PV}$ (\verb|max_pPV|) & solar nameplate capacity [MW]. \\
+	\\  
+\end{tabularx}
+
+We assume that observations of the solar random variable at time $t \in \mathcal{T}$ is made at the same stage as the wind random variable at time $t \in \mathcal{T}$.
+
+\section{Battery Energy Storage System}
+\label{SEC:BatteryEnergyStorageSystem}
+
+\begin{tabularx}{\textwidth}{l l}
+    \textbf{Sets:} \\
+ 	
+    \\
+    
+    \textbf{Parameters:} \\
+	$E^B$ (\verb|Emax|) & BESS energy capacity [MWh].	 \\
+	$P^B$ (\verb|Dmax|) & BESS maximum charging/discharging rate [MW]. \\
+	$\eta^B$ (\verb|RTE|) & BESS round-trip efficiency. \\
+	$\overline{\SOC}$ (\verb|SOCmax|) & BESS maximum state of charge. Unitless, values in $[0, 1]$. \\
+	$\underline{\SOC}$ (\verb|SOCmin|) & BESS minimum state of charge. Unitless, values in $[0, 1]$. \\
+	$\SOC_0$ (\verb|SOCini|) & BESS initial state of charge. Unitless, values in $[0, 1]$. \\
+	$\SOC_T$ (\verb|SOCfin|) & BESS final state of charge. Unitless, values in $[0, 1]$. \\
+    $C^{B,sp}$ (\verb|B_sp_cost|) & BESS specific replacement cost [\euro/MWh]. \\
+    $SRC^{B}$ (\verb|SRC_B|) & battery specific replacement cost [\euro{}/MWh]. \\
+    $cyc^{max}$ (\verb|cyc_max|) & total number of cycles in battery lifetime [cycles].\\
+    $\alpha^B$ (\verb|C_BESS|) & degradation-cost coefficient of BESS [\euro{}/cycle]\\
+       
+    \textbf{Variables:} \\
+	$c_{t, \omega}$ (\verb|cV|)& BESS charge rate at time $t \in \mathcal{T}$ under scenario $\omega \in \Omega$ [MW]. \\
+	$d_{t, \omega}$ (\verb|dV|)& BESS discharge rate at time $t \in \mathcal{T}$ under scenario $\omega \in \Omega$ [MW]. \\	
+	$id_{t, \omega}$ (\verb|idV|) & binary. Indicates the charging ($id_{t, \omega} = 0$) or discharging ($id_{t, \omega}= 1$) state \\
+	& of the BESS at time $t \in \mathcal{T}$ under scenario $\omega \in \Omega$. \\
+	$\soc_{t, \omega}$ (\verb|socV|) & state of charge of BESS at time $t \in \mathcal{T}_0$ under scenario $\omega \in \Omega$. Unitless, \\
+	& values in $[0, 1]$. \\
+	\\
+\end{tabularx}
+
+First, we introduce the following nonnegativity  constraints, and define $id_{t, \omega}$ as a binary (\verb|at variable| \verb|definition|):
+\begin{equation} \label{dVdCPos}
+	c_{t, \omega} \geq 0, \quad d_{t, \omega} \geq 0, \quad id_{t, \omega} \in \{ 0, 1 \} \quad \forall t \in \mathcal{T}, \ \forall \omega \in \Omega.
+\end{equation}
+
+We introduce limits in the charged and discharged quantities of the battery, as well as not allowing simultaneous charging and discharging in every time step (\verb|VPP_state_dV|):
+\begin{equation} \label{EQ:VPP_state_dV}
+	d_{t, \omega} \leq P^B id_{t, \omega} \quad \forall t \in \mathcal{T}, \ \forall \omega \in \Omega
+\end{equation}
+and (\verb|VPP_state_cV|)
+\begin{equation} \label{EQ:VPP_state_cV}
+	c_{t, \omega} \leq P^B (1 - id_{t, \omega}) \quad \forall t \in \mathcal{T}, \ \forall \omega \in \Omega.
+\end{equation}
+
+We define the variable state of charge $\soc_{t, s}$ of the BESS with constraints (\verb|SOCV|): 
+\begin{equation} \label{EQ:SOCV}
+	\soc_{t, \omega} = \soc_{t - 1, \omega} + \frac{c_{t, \omega} - \frac{d_{t, \omega}}{\eta^B}}{E^B} \quad \forall t \in \mathcal{T}, \ \forall \omega \in \Omega. 
+\end{equation} 
+They have to be within the operational limits of the BESS (\verb|at variable definition|):
+\begin{equation} \label{EQ:socVOperLimits}
+	\underline{\SOC} \leq \soc_{t, \omega} \leq \overline{\SOC} \quad \forall t \in \mathcal{T}, \ \forall \omega \in \Omega.
+\end{equation}
+The initial and final states of charge of the BESS are defined with (\verb|SOCV_ini|):
+\begin{equation} \label{EQ:SOCV_ini}
+	\soc_{0, \omega} = \SOC_0 \quad \forall \omega \in \Omega
+\end{equation}
+and (\verb|SOCV_fin|)
+\begin{equation} \label{EQ:SOCV_fin}
+	\soc_{T, \omega} = \SOC_T \quad \forall \omega \in \Omega.
+\end{equation}
+
+The degregation cost is defined as:
+\begin{equation} \label{EQ:BESS_DEGR}
+    \alpha^B = \frac{SRC^B \cdot E^B}{cyc^{max}}
+\end{equation}
+
+\section{Hydrogen Chain}
+\label{SEC:HydrogenChain}
+
+The hydrogen supply chain consists of four units: a PEM electrolyzer (EL), a compressor (CP), a high-pressure $H_{2}$ storage (HS) and a PEM fuel-cell stack (FC). Together they enable the HRS to
+
+\begin{itemize}
+  \item Convert electricity (from PV, BESS or grid) into hydrogen in the EL,
+  \item Compress hydrogen to the desired pressure in the CP,
+  \item Store hydrogen in the HS,
+  \item Reconvert hydrogen into electricity in the FC, and
+  \item Satisfy internal hydrogen demand and/or export surplus hydrogen.
+\end{itemize}
+
+Both the EL and the FC can provide upward and downward reserve. \\
+
+We introduce a pressure-level logic based on three exogenous pressure levels:
+\[
+  Pr^{\rm EL}_{\rm H2},\quad
+  Pr^{\rm HS}_{\rm H2},\quad
+  Pr^{\rm DEM}_{\rm H2},
+\]
+where $Pr^{\rm HS}_{\rm H2}\ge Pr^{\rm DEM}_{\rm H2}$. The CP’s specific electricity consumption is proportional to the pressure lift it provides, namely
+\(Pr^{\rm HS}_{\rm H2}-Pr^{\rm EL}_{\rm H2}\).
+Whenever hydrogen cannot be fed directly to demand or the market, it is compressed to \(Pr^{\rm HS}_{\rm H2}\) and stored.
+
+In this setting, depending on the relation between electrolyser's hydrogen pressure $Pr^{\rm EL}_{\rm H2}$ and demand's hydrogen pressure $Pr^{\rm DEM}_{\rm H2}$, two different regimes can be considered:
+
+\begin{itemize}
+    \item High-pressure regime (\(Pr^{\rm DEM}_{\rm H2}>Pr^{\rm EL}_{\rm H2}\)):
+    Demand can be met either (i) by compressing EL output from
+    \(Pr^{\rm EL}_{\rm H2}\) up to \(Pr^{\rm DEM}_{\rm H2}=Pr^{\rm HS}_{\rm H2}\),
+    or (ii) by drawing hydrogen directly from the tank, which is held at that same pressure.
+    Because tank and demand pressures coincide, no throttling valves are required.
+
+    \item Low-pressure regime (\(Pr^{\rm DEM}_{\rm H2}\le Pr^{\rm EL}_{\rm H2}\)):
+    Demand can be served (i) straight from the electrolyzer, throttling gas from
+    \(Pr^{\rm EL}_{\rm H2}\) down to \(Pr^{\rm DEM}_{\rm H2}\); or
+    (ii) from the tank, stored at \(Pr^{\rm HS}_{\rm H2}>Pr^{\rm EL}_{\rm H2}\), likewise throttled to
+    \(Pr^{\rm DEM}_{\rm H2}\).
+    The CP operates only when charging the tank, lifting hydrogen from
+    \(Pr^{\rm EL}_{\rm H2}\) to \(Pr^{\rm HS}_{\rm H2}\).
+\end{itemize}
+
+Hydrogen exported to the market is delivered at \(Pr^{\rm DEM}_{\rm H2}\) and obeys the same pressure-logic constraints, ensuring consistent handling of flows.
+
+\subsubsection{Electrolyzer}
+\label{SEC:Electrolyzer}
+
+To model the electrolyzer operation with three distinct states—online (production), standby, and off—the structure proposed by \cite{johnsen2025} is adopted as a foundation, particularly in how these states are linked to reserve capacity bidding in electricity markets. The constraints on transitions between states (specifically, disallowing transitions from off to standby and vice versa), along with the modeling of cold and warm startup costs, are incorporated based on the approach detailed by \cite{Zheng2022}, which emphasizes the dynamic behavior of electrolyzer start-up processes. 
+
+Furthermore, the representation of electrolyzer degradation follows the methodology proposed by \cite{Matute2021}. While each of these works contributes a different component to the overall model, their frameworks are mutually consistent and have been integrated to form a comprehensive and coherent model of electrolyzer operation. \\
+
+\noindent
+\begin{tabularx}{\textwidth}{@{}l X@{}}
+    \textbf{Parameters:} \\
+    $\underline{u}^{EL}$ (\verb|min_EL_frac|)
+      & electrolyzer's min input power fraction when on.
+        Unitless, values in [0,1]. \\
+    $P^{EL}$ (\verb|P_EL_nom|)
+      & electrolyzer nominal power [MW]. \\
+    $sc^{EL}$ (\verb|eta_EL|)
+      & electrolyzer specific consumption [MWh/kgH$_2$]. \\
+    $swc^{EL}$ (\verb|sp_wat_EL|)
+      & specific water consumption [L/kgH$_2$]. \\
+    $\lambda^{wat}$ (\verb|lambda_wat|)
+      & water cost [\euro{}/L]. \\
+    $u_{sb}^{EL}$ (\verb|SB_frac|)
+      & standby power fraction of nominal capacity [0,1]. \\
+    $LT^{EL}$ (\verb|EL_lifetime|)
+      & electrolyzer lifetime [h]. \\
+\end{tabularx}
+
+\noindent
+\begin{tabularx}{\textwidth}{@{}l X@{}}
+    $SRC^{EL}$ \hspace{9mm} (\verb|EL_repl_cost|)
+      & electrolyzer-specific replacement cost [\euro{}/MW]. \\
+    $\lambda^{EL}_{warm\_st}$ (\verb|lambda_warm_st|)
+      & warm startup cost per start event (standby$\rightarrow$on) [\euro{}/event]. \\
+    $\lambda^{EL}_{cold\_st}$ (\verb|lambda_cold_st|)
+      & cold startup cost per start event (off$\rightarrow$on) [\euro{}/event]. \\
+    $i^{EL,on}_{\mathrm{ini}}$ (\verb|iEL_on_ini|)
+      & is 1 if electrolyzer starts day 1 in \emph{on} state, 0 otherwise. \\
+    $i^{EL,sb}_{\mathrm{ini}}$ (\verb|iEL_sb_ini|)
+      & is 1 if electrolyzer starts day 1 in \emph{standby} state, 0 otherwise. \\
+    $i^{EL,off}_{\mathrm{ini}}$ (\verb|iEL_off_ini|)
+      & is 1 if electrolyzer starts day 1 in \emph{off} state, 0 otherwise.
+        Exactly one among these three initial states must be assigned 1. \\
+    $\alpha^{EL}$ (\verb|alpha_EL|)
+      & degradation-cost coefficient of electrolyzer [\euro{}/h]. \\
+\end{tabularx}
+
+\noindent
+\begin{tabularx}{\textwidth}{@{}l X@{}}
+    \textbf{Variables:} & \\
+    $e^{EL}_{t,\omega}$ (\verb|eEL|)
+      & total electricity consumed by the electrolyzer at time $t \in \mathcal{T}$
+        under scenario $\omega \in \Omega$ [MWh]. \\
+    $e^{EL,on}_{t,\omega}$ (\verb|eEL_on|)
+      & electrolyzer's electricity consumption in \emph{on} state (producing hydrogen)
+        at time $t \in \mathcal{T}$ under scenario $\omega \in \Omega$ [MWh]. \\
+    $e^{EL,sb}_{t,\omega}$ (\verb|eEL_sb|)
+      & electrolyzer's electricity consumption in \emph{standby} state
+        at time $t \in \mathcal{T}$ under scenario $\omega \in \Omega$ [MWh]. \\
+    $h^{EL}_{t,\omega}$ (\verb|hEL|)
+      & hydrogen produced at time $t \in \mathcal{T}$
+        under scenario $\omega \in \Omega$ [kgH$_2$]. \\
+    $h^{dir,EL}_{t,\omega}$ (\verb|hdir_EL|)
+      & hydrogen used directly to meet demand at time $t \in \mathcal{T}$
+        under scenario $\omega \in \Omega$ [kgH$_2$]. \\
+    $h^{comp,EL}_{t,\omega}$ (\verb|hcomp_EL|)
+      & hydrogen sent to compressor at time $t \in \mathcal{T}$
+        under scenario $\omega \in \Omega$ [kgH$_2$]. \\
+\end{tabularx}
+
+\noindent
+\begin{tabularx}{\textwidth}{@{}l X@{}}
+    $i^{EL,on}_{t,\omega}$ \hspace{8mm} (\verb|iEL_on|)
+      & binary: Indicates whether the electrolyzer is in on state
+        ($i^{EL,on}_{t,\omega} = 1$) or not ($i^{EL,on}_{t,\omega} = 0$)
+        at time $t \in \mathcal{T}_0$ under scenario $\omega \in \Omega$. \\
+    $i^{EL,sb}_{t,\omega}$ (\verb|iEL_sb|)
+      & binary: Indicates whether the electrolyzer is in standby state
+        ($i^{EL,sb}_{t,\omega} = 1$) or not ($i^{EL,sb}_{t,\omega} = 0$)
+        at time $t \in \mathcal{T}_0$ under scenario $\omega \in \Omega$. \\
+    $i^{EL,off}_{t,\omega}$ (\verb|iEL_off|)
+      & binary: Indicates whether the electrolyzer is in off state
+        ($i^{EL,off}_{t,\omega} = 1$) or not ($i^{EL,off}_{t,\omega} = 0$)
+        at time $t \in \mathcal{T}_0$ under scenario $\omega \in \Omega$. \\
+    $i^{EL,warm}_{t,\omega}$ (\verb|iEL_warm|)
+      & binary: is $1$ if warm startup event (standby→on)
+        at time $t \in \mathcal{T}$ under scenario $\omega \in \Omega$. \\
+    $i^{EL,cold}_{t,\omega}$ (\verb|iEL_cold|)
+      & binary: is $1$ if cold startup event (off→on)
+        at time $t \in \mathcal{T}$ under scenario $\omega \in \Omega$. \\
+\end{tabularx}
+
+\medskip
+
+We define the degradation-cost coefficient $\alpha^{EL}$ [\euro{}/h] by 
+        \[
+          \alpha^{EL} \;=\;
+          \frac{SRC^{EL}  P^{EL}}
+               {LT^{EL}}
+        \]
+
+It expresses the monetary cost of using the electrolyzer over time. In the model, it enters the objective function as a penalty thereby accounting for degradation each time the electrolyzer is in the \emph{on} operating state.
+
+\medskip
+
+
+We introduce the following nonnegativity constraints, and define $i^{EL,on}_{t, \omega}$, $i^{EL,sb}_{t, \omega}$, $i^{EL,off}_{t, \omega}$, $i^{EL,warm}_{t, \omega}$, $i^{EL,cold}_{t, \omega}$ as binary decision variables:
+\begin{align}
+    & e^{EL}_{t,\omega} \ge 0,\quad
+      e^{EL,on}_{t,\omega} \ge 0,\quad
+      e^{EL,sb}_{t,\omega} \ge 0,\quad
+      h^{EL}_{t,\omega} \ge 0,\quad
+      h^{dir,EL}_{t,\omega} \ge 0,\quad \notag \\[1ex]
+    & h^{comp,EL}_{t,\omega} \ge 0,\quad
+      i^{EL,on}_{t,\omega}\in\{0,1\},\,
+      i^{EL,sb}_{t,\omega}\in\{0,1\},\,
+      i^{EL,off}_{t,\omega}\in\{0,1\},\quad \notag \\[1ex]
+    & i^{EL,warm}_{t,\omega}\in\{0,1\},\,
+      i^{EL,cold}_{t,\omega}\in\{0,1\},\quad
+      \forall t\in\mathcal{T},\,\forall\omega\in\Omega.
+    \label{EQ:EL_nonnegativity}
+\end{align}
+
+We introduce bounds on the electrolyzer's power consumption in \emph{on} state to ensure proper operation:
+\begin{equation} \label{EQ:EL_min_power}
+    e^{EL,on}_{t, \omega} \geq \underline{u}^{EL}  P^{EL} \Delta t \ i^{EL,on}_{t, \omega} \quad \forall t \in \mathcal{T}, \ \forall \omega \in \Omega
+\end{equation}
+\begin{equation} \label{EQ:EL_max_power}
+    e^{EL,on}_{t, \omega} \leq P^{EL} \Delta t \ i^{EL,on}_{t, \omega} \quad \forall t \in \mathcal{T}, \ \forall \omega \in \Omega.
+\end{equation}
+
+\medskip
+
+We define the electrolyzer energy-to-hydrogen conversion:
+\begin{equation} \label{EQ:EL_conversion}
+    e^{EL,on}_{t, \omega} = sc^{EL}  h^{EL}_{t, \omega} \quad \forall t \in \mathcal{T}, \ \forall \omega \in \Omega.
+\end{equation}
+
+The hydrogen produced by the electrolyzer is split into two parts: one used directly to meet hydrogen demand, and one sent to the compressor:
+\begin{equation} \label{EQ:EL_split}
+    h^{EL}_{t, \omega} = h^{dir,EL}_{t, \omega} + h^{comp,EL}_{t, \omega} \quad \forall t \in \mathcal{T}, \ \forall \omega \in \Omega.
+\end{equation}
+
+\medskip
+
+In standby state, the electrolyzer draws a fixed fraction of nominal power.
+No hydrogen is produced in this state.
+\begin{equation} \label{EQ:EL_SB_energy_balance}
+    e^{EL,sb}_{t,\omega} = u_{sb}^{EL}  P^{EL} \Delta t \ i^{EL,sb}_{t,\omega} \quad \forall t \in \mathcal{T}, \ \forall \omega \in \Omega.
+\end{equation}
+
+Total electricity consumed by the electrolyzer is the sum of consumptions in \emph{on} and \emph{standby} states
+\begin{equation} \label{EQ:EL_energy_balance}
+    e^{EL}_{t,\omega} = e^{EL,on}_{t,\omega} + e^{EL,sb}_{t,\omega} \quad \forall t \in \mathcal{T}, \ \forall \omega \in \Omega.
+\end{equation}
+
+
+At time \(t=0\), each state variable is pinned to its initial state via three individual constraints:
+\begin{align}
+  \label{EQ:EL_on_ini}
+  i^{EL,on}_{0,\omega}
+  &= i^{EL,on}_{\mathrm{ini}}
+  \quad \forall\,\omega\in\Omega.\\
+  \label{EQ:EL_sb_ini}
+  i^{EL,sb}_{0,\omega}
+  &= i^{EL,sb}_{\mathrm{ini}}
+  \quad \forall\,\omega\in\Omega.\\
+  \label{EQ:EL_off_ini}
+  i^{EL,off}_{0,\omega}
+  &= i^{EL,off}_{\mathrm{ini}}
+  \quad \forall\,\omega\in\Omega.
+\end{align}
+
+Exactly one of \emph{on}, \emph{standby}, or \emph{off} must be active at each time period and scenario
+\begin{equation} \label{EQ:EL_one_state}
+    i^{EL,on}_{t,\omega} + i^{EL,sb}_{t,\omega} + i^{EL,off}_{t,\omega} = 1 \quad \forall t \in \mathcal{T}, \ \forall \omega \in \Omega.
+\end{equation}
+
+Forbidden standby$\rightarrow$off transition 
+\begin{equation} \label{EQ:EL_no_sb_off1}
+    i^{EL,off}_{t,\omega} \leq 1 - i^{EL,sb}_{t-1,\omega} \quad \forall t \in \mathcal{T}, \ \forall \omega \in \Omega.
+\end{equation}
+
+Forbidden off$\rightarrow$standby transition 
+\begin{equation} \label{EQ:EL_no_sb_off2}
+    i^{EL,sb}_{t,\omega} \leq 1 - i^{EL,off}_{t-1,\omega} \quad \forall t \in \mathcal{T}, \ \forall \omega \in \Omega.
+\end{equation}
+
+A warm start (standby→on) is flagged when both standby at $t-1$ and on at $t$ occur
+\begin{equation} \label{EQ:EL_warm_lower}
+    i^{EL,sb}_{t-1,\omega} + i^{EL,on}_{t,\omega} - 1 \leq i^{EL,warm}_{t,\omega} \quad \forall t \in \mathcal{T}, \ \forall \omega \in \Omega.
+\end{equation}
+
+A cold start (off→on) is flagged when both off at $t-1$ and on at $t$ occur
+\begin{equation} \label{EQ:EL_cold_lower}
+    i^{EL,off}_{t-1,\omega} + i^{EL,on}_{t,\omega} - 1 \leq i^{EL,cold}_{t,\omega} \quad \forall t \in \mathcal{T}, \ \forall \omega \in \Omega.
+\end{equation}
+
+
+\subsubsection{Compressor}
+\label{SEC:Compressor}
+
+\noindent
+\begin{tabularx}{\textwidth}{@{}l X@{}}
+    \textbf{Parameters:} \\
+    $\text{sc}^{CP}$ (\verb|spec_COMP|)
+      & specific energy consumption of the compressor. It is needed to compress
+        hydrogen from electrolyzer to tank pressure [MWh/kgH$_2$]. \\
+    $P^{CP}$ (\verb|P_COMP_nom|)
+      & compressor's nominal power [MW]. \\
+    \\
+
+    \textbf{Variables:} \\
+    $e^{CP}_{t,\omega}$ (\verb|eCOMP|)
+      & electricity consumed by the compressor at time $t \in \mathcal{T}$
+        under scenario $\omega \in \Omega$ [MWh]. \\
+    $h^{dir,CP}_{t,\omega}$ (\verb|HDIR_COMP|)
+      & compressed hydrogen used directly to cover hydrogen demand [kgH$_2$]. \\
+    $h^{c,HS}_{t,\omega}$ (\verb|HC_TK|)
+      & compressed hydrogen charged into the tank [kgH$_2$]. \\
+    \\
+\end{tabularx}
+
+We introduce the following nonnegativity constraints:
+\begin{equation} \label{EQ:CP_nonnegativity}
+    e^{CP}_{t, \omega} \geq 0, \quad h^{dir,CP}_{t, \omega} \geq 0, \quad h^{c,HS}_{t, \omega} \geq 0 \quad \forall t \in \mathcal{T}, \ \forall \omega \in \Omega.
+\end{equation}
+
+The compressor cannot exceed its nominal power at any time:
+\begin{equation} \label{EQ:CP_power}
+    e^{CP}_{t, \omega} \leq P^{CP} \Delta t \quad \forall t \in \mathcal{T}, \ \forall \omega \in \Omega.
+\end{equation}
+
+We define the electricity consumption of the compressor as a function of the hydrogen flow rate entering it:
+\begin{equation} \label{EQ:CP_energy}
+    e^{CP}_{t, \omega} = \text{sc}^{CP}  h^{comp,EL}_{t, \omega} \quad \forall t \in \mathcal{T}, \ \forall \omega \in \Omega.
+\end{equation}
+
+The hydrogen processed by the compressor is split into a fraction directly satisfying hydrogen demand and another that is sent to the tank:
+\begin{equation} \label{EQ:CP_split}
+    h^{comp,EL}_{t, \omega} = h^{dir,CP}_{t, \omega} + h^{c,HS}_{t, \omega} \quad \forall t \in \mathcal{T}, \ \forall \omega \in \Omega.
+\end{equation}
+
+
+\subsubsection{Hydrogen Storage}
+\label{SEC:StorageTank}
+
+\noindent
+\begin{tabularx}{\textwidth}{@{}l X@{}}
+    \textbf{Parameters:} \\
+    $H^{HS}$ (\verb|H_tank_cap|)
+      & tank capacity [kgH$_2$]. \\
+    $Q^{HS}$ (\verb|P_tank|)
+      & maximum tank charge/discharge rate [kgH$_2$/h]. \\
+    $\eta^{HS}$ (\verb|eta_tank|)
+      & tank round-trip efficiency. Unitless, values in [0,1]. \\
+    $\overline{\LOH}$ (\verb|LOH_max|)
+      & max level of hydrogen in tank. Unitless, values in [0,1]. \\
+    $\underline{\LOH}$ (\verb|LOH_min|)
+      & min level of hydrogen in tank. Unitless, values in [0,1]. \\
+    $\LOH_0$ (\verb|LOH_ini|)
+      & initial level of hydrogen in tank. Unitless, values in [0,1]. \\
+    $\LOH_T$ (\verb|LOH_fin|)
+      & final level of hydrogen in tank. Unitless, values in [0,1]. \\
+\end{tabularx}
+
+\begin{tabularx}{\textwidth}{@{}l X@{}}
+    \textbf{Variables:} \\
+    $\LOH_{t,\omega}$ (\verb|LOH|)
+      & hydrogen level in tank at time $t \in \mathcal{T}_0$ under scenario
+        $\omega \in \Omega$. Unitless, values in [0,1]. \\
+    $h^{d,HS}_{t,\omega}$ (\verb|HDISCH_TK|)
+      & hydrogen discharged from the tank at time $t \in \mathcal{T}$
+        under scenario $\omega \in \Omega$ [kgH$_2$]. \\
+    $h^{dir,HS}_{t,\omega}$ (\verb|HDIR_TK|)
+      & hydrogen discharged from the tank used directly to meet demand
+        at time $t \in \mathcal{T}$ under scenario $\omega \in \Omega$ [kgH$_2$]. \\
+    $h^{FC}_{t,\omega}$ (\verb|HFC|)
+      & hydrogen used by the fuel cell at time $t \in \mathcal{T}$
+        under scenario $\omega \in \Omega$ [kgH$_2$]. \\
+    $i^{HS}_{t,\omega}$ (\verb|iTK|)
+      & binary. Indicates the charging ($i^{HS}_{t,\omega} = 0$) or
+        discharging ($i^{HS}_{t,\omega} = 1$) state of the tank at time
+        $t \in \mathcal{T}$ under scenario $\omega \in \Omega$. \\
+    \\
+\end{tabularx}
+
+
+We introduce the following nonnegativity constraints and define $i^{HS}_{t, \omega}$ as a binary decision variable:
+\begin{equation} \label{EQ:HS_nonnegativity}
+    h^{d,HS}_{t,\omega} \geq 0, \quad h^{dir,HS}_{t,\omega} \geq 0, \quad h^{FC}_{t, \omega} \geq 0, \quad i^{HS}_{t,\omega} \in \{0,1\} \quad \forall t \in \mathcal{T}, \ \forall \omega \in \Omega.
+\end{equation}
+
+The hydrogen flow rates in or out of the tank are limited depending on whether the tank is charging or discharging:
+\begin{equation} \label{EQ:HS_charge}
+    h^{c,HS}_{t,\omega} \leq Q^{HS} \Delta t \ (1 - i^{HS}_{t,\omega}) \quad \forall t \in \mathcal{T}, \ \forall \omega \in \Omega
+\end{equation}
+\begin{equation} \label{EQ:HS_discharge}
+    h^{d,HS}_{t,\omega} \leq Q^{HS} \Delta t \  i^{HS}_{t,\omega} \quad \forall t \in \mathcal{T}, \ \forall \omega \in \Omega.
+\end{equation}
+
+The $H_{2}$ storage dynamics define the evolution of the level of hydrogen in the tank:
+\begin{equation} \label{EQ:HS_dynamics}
+    \LOH_{t,\omega} = \LOH_{t-1,\omega} + \frac{h^{c,HS}_{t,\omega} - \frac{h^{d,HS}_{t,\omega}}{\eta^{HS}}}{H^{HS}} \quad \forall t \in \mathcal{T}, \ \forall \omega \in \Omega.
+\end{equation}
+
+The LOH has to be within the operational limits of the tank:
+\begin{equation} \label{EQ:LOHperLimits}
+	\underline{\LOH} \leq \LOH_{t, \omega} \leq \overline{\LOH} \quad \forall t \in \mathcal{T}, \ \forall \omega \in \Omega.
+\end{equation}
+
+We define the initial and final hydrogen level constraints of the tank:
+\begin{equation} \label{EQ:HS_initial}
+    \LOH_{0,\omega} = \LOH_0 \quad \forall \omega \in \Omega
+\end{equation}
+\begin{equation} \label{EQ:HS_final}
+    \LOH_{T,\omega} = \LOH_T \quad \forall \omega \in \Omega.
+\end{equation}
+
+The hydrogen discharged from the tank is split between the fraction used directly to satisfy the demand and the one used to feed the fuel cell:
+\begin{equation} \label{EQ:HS_split}
+    h^{d,HS}_{t,\omega} = h^{dir,HS}_{t,\omega} + h^{FC}_{t,\omega} \quad \forall t \in \mathcal{T}, \ \forall \omega \in \Omega.
+\end{equation}
+
+
+\subsubsection{Fuel Cell}
+\label{SEC:FuelCell}
+
+To model the fuel cell operation we adopt the same tri‐state (on, standby, off) structure of the electrolyzer, as proposed in \cite{You2016} and \cite{Shehzad2020}, including the prohibition of direct transitions between off and standby. Startup costs are represented in energetic terms following \cite{You2016}, assigning the same energy‐based startup value to both electrolyzer and fuel cell. When converted to monetary terms via the electricity price, these align with the economic startup costs reported in \cite{Zheng2022}. Degradation costs follow the methodology of \cite{Matute2021}, but are scaled higher to reflect the greater CAPEX of fuel cells. \\ A key distinction from BESS is that, unlike batteries, the hydrogen conversion chain permits the electrolyzer and fuel cell to operate simultaneously—and even to provide reserve concurrently—as highlighted in \cite{Shehzad2020}.
+
+\noindent
+\begin{tabularx}{\textwidth}{@{}l X@{}}
+    \textbf{Parameters:} \\
+    $\underline{u}^{FC}$ (\verb|min_FC_frac|)
+      & fuel cell's minimum output power fraction when active.
+        Unitless, values in [0,1]. \\
+    $P^{FC}$ (\verb|P_FC_nom|)
+      & fuel cell nominal power [MW]. \\
+    $sc^{FC}$ (\verb|eta_FC|)
+      & fuel cell specific consumption [kgH$_2$/MWh]. \\
+    $u_{sb}^{FC}$ (\verb|SB_frac_FC|)
+      & standby power fraction of nominal capacity [0,1]. \\
+    $LT^{FC}$ (\verb|FC_lifetime|)
+      & fuel cell lifetime [h]. \\
+    $SRC^{FC}$ (\verb|FC_repl_cost|)
+      & fuel cell-specific replacement cost [\euro{}/MW]. \\
+    $\lambda^{FC}_{warm\_st}$ (\verb|lambda_warm_st_FC|)
+      & warm startup cost per start event (standby$\rightarrow$on) [\euro{}/event]. \\
+    $\lambda^{FC}_{cold\_st}$ (\verb|lambda_cold_st_FC|)
+      & cold startup cost per start event (off$\rightarrow$on) [\euro{}/event]. \\
+    $i^{FC,on}_{\mathrm{ini}}$ (\verb|iFC_on_ini|)
+      & is 1 if the fuel cell starts day 1 in the \emph{on} state, 0 otherwise. \\
+    $i^{FC,sb}_{\mathrm{ini}}$ (\verb|iFC_sb_ini|)
+      & is 1 if the fuel cell starts day 1 in the \emph{standby} state, 0 otherwise. \\
+    $i^{FC,off}_{\mathrm{ini}}$ (\verb|iFC_off_ini|)
+      & is 1 if the fuel cell starts day 1 in the \emph{off} state, 0 otherwise.
+        Exactly one among these three initial states must be assigned 1. \\
+    $\alpha^{FC}$ (\verb|alpha_FC|)
+      & degradation-cost coefficient of fuel cell [\euro{}/h]. \\
+\end{tabularx}
+
+\noindent
+\begin{tabularx}{\textwidth}{@{}l X@{}}
+    \textbf{Variables:} \\
+    $e^{FC,on}_{t,\omega}$ (\verb|eFC_on|)
+      & fuel cell's electricity production in \emph{on} state (consuming hydrogen)
+        at time $t \in \mathcal{T}$ under scenario $\omega \in \Omega$ [MWh]. \\
+    $e^{FC,sb}_{t,\omega}$ (\verb|eFC_sb|)
+      & fuel cell's electricity consumption in \emph{standby} state
+        at time $t \in \mathcal{T}$ under scenario $\omega \in \Omega$ [MWh]. \\
+    $i^{FC,on}_{t,\omega}$ (\verb|iFC_on|)
+      & binary: Indicates whether the fuel cell is in on state
+        ($i^{FC,on}_{t,\omega} = 1$) or not ($i^{FC,on}_{t,\omega} = 0$)
+        at time $t \in \mathcal{T}_0$ under scenario $\omega \in \Omega$. \\
+    $i^{FC,sb}_{t,\omega}$ (\verb|iFC_sb|)
+      & binary: Indicates whether the fuel cell is in standby state
+        ($i^{FC,sb}_{t,\omega} = 1$) or not ($i^{FC,sb}_{t,\omega} = 0$)
+        at time $t \in \mathcal{T}_0$ under scenario $\omega \in \Omega$. \\
+    $i^{FC,off}_{t,\omega}$ (\verb|iFC_off|)
+      & binary: Indicates whether the fuel cell is in off state
+        ($i^{FC,off}_{t,\omega} = 1$) or not ($i^{FC,off}_{t,\omega} = 0$)
+        at time $t \in \mathcal{T}_0$ under scenario $\omega \in \Omega$. \\
+    $i^{FC,warm}_{t,\omega}$ (\verb|i_FC_warm|)
+      & binary: warm startup event (standby$\rightarrow$on)
+        at time $t \in \mathcal{T}$ under scenario $\omega \in \Omega$. \\
+    $i^{FC,cold}_{t,\omega}$ (\verb|i_FC_cold|)
+      & binary: cold startup event (off$\rightarrow$on)
+        at time $t \in \mathcal{T}$ under scenario $\omega \in \Omega$. \\
+    \\
+\end{tabularx}
+
+\medskip
+
+We define the fuel cell's degradation-cost coefficient $\alpha^{FC}$ [\euro{}/h] by  
+        \[
+          \alpha^{FC} \;=\;
+          \frac{SRC^{FC}  P^{FC}}
+               {LT^{FC}}.
+        \]
+
+It expresses the monetary cost of using the fuel cell over time. In the model, it enters the objective function as a penalty thereby accounting for degradation each time the fuel cell is in the \emph{on} operating state.
+
+\medskip
+
+We introduce the following nonnegativity constraints, and define $i^{FC,on}_{t, \omega}$, $i^{FC,sb}_{t, \omega}$, $i^{FC,off}_{t, \omega}$, $i^{FC,warm}_{t, \omega}$, $i^{FC,cold}_{t, \omega}$ as binary decision variables:
+\begin{align}
+    & e^{FC,on}_{t,\omega} \ge 0,\quad
+      e^{FC,sb}_{t,\omega} \ge 0,\quad
+      i^{FC,on}_{t,\omega}\in\{0,1\},\quad
+      i^{FC,sb}_{t,\omega}\in\{0,1\},\quad
+      i^{FC,off}_{t,\omega}\in\{0,1\},\notag \\[1ex]
+    & i^{FC,warm}_{t,\omega}\in\{0,1\},\quad
+      i^{FC,cold}_{t,\omega}\in\{0,1\},
+      \quad \forall t\in\mathcal{T},\,\forall\omega\in\Omega.
+    \label{EQ:FC_nonnegativity}
+\end{align}
+
+
+We introduce bounds in the fuel cell's electricity generation in \emph{on} state to ensure realistic operation:
+\begin{equation} \label{EQ:FC_min_power}
+    e^{FC,on}_{t, \omega} \geq \underline{u}^{FC}  P^{FC} \Delta t\ i^{FC,on}_{t, \omega} \quad \forall t \in \mathcal{T}, \ \forall \omega \in \Omega
+\end{equation}
+\begin{equation} \label{EQ:FC_max_power}
+    e^{FC,on}_{t, \omega} \leq P^{FC} \Delta t\  i^{FC,on}_{t, \omega} \quad \forall t \in \mathcal{T}, \ \forall \omega \in \Omega.
+\end{equation}
+
+\medskip
+
+Hydrogen consumption is proportional to electricity produced:
+\begin{equation} \label{EQ:FC_conversion}
+    h^{FC}_{t, \omega} = sc^{FC}  e^{FC,on}_{t, \omega} \quad \forall t \in \mathcal{T}, \ \forall \omega \in \Omega.
+\end{equation}
+
+\medskip
+
+In standby the fuel cell draws a fixed fraction of nominal power. No hydrogen is consumed in this state:
+\begin{equation} \label{EQ:FC_SB_energy_balance}
+    e^{FC,sb}_{t,\omega} = u_{sb}^{FC}  P^{FC} \Delta t\  i^{FC,sb}_{t,\omega} \quad \forall t \in \mathcal{T}, \ \forall \omega \in \Omega.
+\end{equation}
+
+At time \(t=0\), each state variable is pinned to its initial state via three individual constraints:
+\begin{align}
+  \label{EQ:FC_on_ini}
+  i^{FC,on}_{0,\omega}
+  &= i^{FC,on}_{\mathrm{ini}}
+  \quad \forall\,\omega\in\Omega.\\
+  \label{EQ:FC_sb_ini}
+  i^{FC,sb}_{0,\omega}
+  &= i^{FC,sb}_{\mathrm{ini}}
+  \quad \forall\,\omega\in\Omega.\\
+  \label{EQ:FC_off_ini}
+  i^{FC,off}_{0,\omega}
+  &= i^{FC,off}_{\mathrm{ini}}
+  \quad \forall\,\omega\in\Omega.
+\end{align}
+
+Exactly one of on, standby, or off must be active at each time
+\begin{equation} \label{EQ:FC_one_state}
+    i^{FC,on}_{t,\omega} + i^{FC,sb}_{t,\omega} + i^{FC,off}_{t,\omega} = 1 \quad \forall t \in \mathcal{T}, \ \forall \omega \in \Omega.
+\end{equation}
+
+Forbidden standby$\rightarrow$off transition
+\begin{equation} \label{EQ:FC_no_sb_off1}
+    i^{FC,off}_{t,\omega} \leq 1 - i^{FC,sb}_{t-1,\omega} \quad \forall t \in \mathcal{T}, \ \forall \omega \in \Omega.
+\end{equation}
+
+Forbidden off$\rightarrow$standby transition
+\begin{equation} \label{EQ:FC_no_sb_off2}
+    i^{FC,sb}_{t,\omega} \leq 1 - i^{FC,off}_{t-1,\omega} \quad \forall t \in \mathcal{T}, \ \forall \omega \in \Omega.
+\end{equation}
+
+A warm start (standby→on) is flagged when both standby at $t-1$ and on at $t$ occur
+\begin{equation} \label{EQ:FC_warm_lower}
+    i^{FC,sb}_{t-1,\omega} + i^{FC,on}_{t,\omega} - 1 \leq i^{FC,warm}_{t,\omega} \quad \forall t \in \mathcal{T}, \ \forall \omega \in \Omega.
+\end{equation}
+
+A cold start (off→on) is flagged when both off at $t-1$ and on at $t$ occur
+\begin{equation} \label{EQ:FC_cold_lower}
+    i^{FC,off}_{t-1,\omega} + i^{FC,on}_{t,\omega} - 1 \leq i^{FC,cold}_{t,\omega} \quad \forall t \in \mathcal{T}, \ \forall \omega \in \Omega.
+\end{equation}
+
+
+\subsubsection{Hydrogen Demand and Hydrogen Sold}
+\label{SEC:HydrogenDemand}
+
+We assume that the hydrogen has to be delivered at a pressure of \(Pr^{\rm DEM}_{\rm H2}\) for both refueling station demand and sales. The routing logic that determines which of the three pathways (\textit{EL}, \textit{CP}, \textit{HS}) is admissible to deliver hydrogen at each time step has been detailed in \ref{SEC:HydrogenChain}.
+
+\noindent
+\begin{tabularx}{\textwidth}{@{}l X@{}}
+  \textbf{Parameters:} & \\
+  $h^{\rm DEM}_{t}$ (\verb|HDEM|)
+    & hydrogen demand at time~$t\in\mathcal{T}$ [kgH$_2$]. \\
+  $Pr^{\rm DEM}_{\rm H2}$ (\verb|HDEM_press|)
+    & delivery pressure for both demand and sales [bar]. \\
+  $Pr^{\rm EL}_{\rm H2}$ (\verb|HEL_press|)
+    & electrolyzer outlet pressure [bar]. \\
+  $\lambda^{H}$ (\verb|lambda_H|)
+    & hydrogen price [\euro{}/kgH$_2$]. \\
+  \\
+
+  \textbf{Variables:} & \\
+  $h^{\rm sold}_{t,\omega}$ (\verb|Hsold|)
+    & hydrogen sold ---excess beyond demand--- at time $t \in \mathcal{T}$
+      under scenario $\omega \in \Omega$ [kgH$_2$]. \\
+\end{tabularx}
+
+\medskip
+
+The hydrogen produced must satisfy the refueling station demand and surplus hydrogen sold. This is expressed in the following constraints
+\begin{equation}
+\label{EQ:H2_demand_balance}
+  h^{\rm DEM}_{t}
+  + h^{\rm sold}_{t,\omega}
+  \;=\;
+  h^{\rm dir,EL}_{t,\omega}
+  + h^{\rm dir,CP}_{t,\omega}
+  + h^{\rm dir,HS}_{t,\omega}
+  \quad\forall\,t\in\mathcal{T},\ \omega\in\Omega\,.
+\end{equation}
+
+\subsubsection{Model Configuration}
+\label{SEC:ModelConfiguration}
+
+To facilitate the implementation of the different HRS configurations we introduce two flags. $\phi$ denotes the export flag and $\chi$ denotes the pressure case flag.
+
+\noindent
+\begin{tabularx}{\textwidth}{@{}l X@{}}
+  \textbf{Parameters:} & \\
+      $\phi$ & export flag. $\phi = 1 $ if sales are allowed, $\phi = 0$ o/w. \\
+      $\chi$ & pressure case flag. $\chi = 1$ if $Pr^{\rm DEM}_{\rm H2} > Pr^{\rm EL}_{\rm H2}$ (high-pressure case), $\chi = 0$ o/w (low-pressure case) \\
+\end{tabularx}
+
+\medskip
+
+If sales are disallowed (\(\phi=0\)), surplus hydrogen is forced to be zero:
+\begin{equation} \label{EQ:H2_sold_nosell}
+  h^{\rm sold}_{t,\omega} \;\le\; \phi\, 
+  \overline{H} \quad\forall\,t\in\mathcal{T},\ \omega\in\Omega\,,
+\end{equation}
+where $\overline{H}$ is a sufficiently large constant.
+
+In the high-pressure case ($\chi = 1$), hydrogen generated by the EL cannot be used to satisfy demand or sold because its pressure is too low. Hence, we introduce
+\begin{equation}
+  h^{\rm dir,EL}_{t,\omega} \le (1-\chi)\, \frac{P^{EL} \Delta t}{sc^{EL}}
+  \quad\forall\,t\in\mathcal{T},\ \omega\in\Omega\,.
+  \label{EQ:H2_direct_switch_EL}
+\end{equation}
+In the low-pressure case ($\chi = 0$), we do not allow hydrogen to satisfy demand or be sold directly from the compressor
+\begin{equation}
+  h^{\rm dir,CP}_{t,\omega} \le \chi\, \frac{P^{EL} \Delta t}{sc^{EL}} \quad\forall\,t\in\mathcal{T},\ \omega\in\Omega\,.
+  \label{EQ:H2_direct_switch_CP}
+\end{equation}
+Observe that these are tightening constraints because, while it is physically possible to satisfy demand or sell hydrogen after compression, it is cheaper to use hydrogen directly from the electrolyzer without compression for these purposes. In the low-pressure regime, this option is physically possible and has a lower objective function value.
+
+In constraints \eqref{EQ:H2_direct_switch_EL} and \eqref{EQ:H2_direct_switch_CP}, the constant $\frac{P^{EL} \Delta t}{sc^{EL}}$ represents the maximum hydrogen produced by the EL in one time period, which is large enough to not be binding in the cases where these constraints should not be active.
+
+
+\section{Market Participation}
+\label{SEC:MarketParticipation}
+
+\subsection{Day Ahead Market}
+
+\begin{tabularx}{\textwidth}{l l}
+    \textbf{Sets:} \\
+    $\mathcal{SSD}$ (\verb|Ssd|) & $\{(t, l, j) \in \mathcal{T} \times \Omega \times \Omega
+        \hspace{2mm} | \hspace{2mm} l \neq j, \hspace{2mm}
+        \lambda^D_{t, l} \leq \lambda^D_{t, j} \}$. Rather technical, \\
+    & For every $t \in \mathcal{T}$ provides the scenario pairs $(l, j)$
+        s.t.\ $\lambda^D_{t, l} \leq \lambda^D_{t, j}$ (order is important). \\
+    & Used to ensure monotonicity of day-ahead bids
+        w.r.t.\ day-ahead price realisations. \\
+    \\
+    \textbf{Parameters:} \\
+    $\lambda^{D}_{t, \omega}$ (\verb|lD|)
+        & day-ahead market price at time $t \in \mathcal{T}$
+          under scenario $\omega \in \Omega$ [\euro/MWh]. \\
+    $\underline{P}^{DA}$ (\verb|PDA_LB|)
+        & minimum bid size to day-ahead market [MWh]. \\
+    \\
+    \textbf{Variables:} \\
+    $e^{DA+}_{t, \omega}$ (\verb|eDA_p|)
+        & energy matched in the day-ahead market of a selling bid by EC
+          at time $t \in \mathcal{T}$ under scenario $\omega \in \Omega$ [MWh]. \\
+    $e^{DA-}_{t, \omega}$ (\verb|eDA_m|)
+        & energy matched in the day-ahead market of a buying bid by EC
+          at time $t \in \mathcal{T}$ under scenario $\omega \in \Omega$ [MWh]. \\
+    $ie^{DA+}_{t, \omega}$ (\verb|ieDA_p|)
+        & binary. $ie^{DA+}_{t, \omega} = 1$ if the EC sells electricity
+          at time $t \in \mathcal{T}$ under scenario $\omega \in \Omega$.
+          $ie^{DA+}_{t, \omega} = 0$ o/w. \\
+    $ie^{DA-}_{t, \omega}$ (\verb|ieDA_m|)
+        & binary. $ie^{DA-}_{t, \omega} = 1$ if the EC buys electricity
+          at time $t \in \mathcal{T}$ under scenario $\omega \in \Omega$.
+          $ie^{DA-}_{t, \omega} = 0$ o/w. \\
+    \\
+\end{tabularx}
+
+First, we impose that the variables $e^{DA+}_{t, \omega}$, $e^{DA-}_{t, \omega}$ are
+nonnegative, and that $ie^{DA+}_{t, \omega}$, $ie^{DA-}_{t, \omega}$ are binary
+(\verb|at variable definition|):
+\begin{equation} \label{EQ:DAVarDef}
+    e^{DA+}_{t, \omega} \geq 0, \quad e^{DA-}_{t, \omega} \geq 0, \quad
+    ie^{DA+}_{t, \omega},\ ie^{DA-}_{t, \omega} \in \{0, 1\}
+    \quad \forall t \in \mathcal{T},\ \forall \omega \in \Omega.
+\end{equation}
+
+We introduce lower and upper bounds on the selling and buying energy matched
+quantities. The upper bounds are such that all elements of the energy community
+can contribute towards the day-ahead market bid, including the hydrogen chain.
+For selling energy matched (\verb|DA_sell_bid_LB| and \verb|DA_sell_bid_UB|)
+\begin{equation} \label{EQ:DA_sell_bid_LB}
+    \underline{P}^{DA}\, ie^{DA+}_{t, \omega}
+    \leq e^{DA+}_{t, \omega}
+    \leq \bigl(\overline{P}^W + \overline{P}^{PV} + P^B
+               + P^{FC} - \underline{D}_t\bigr)\,
+         ie^{DA+}_{t, \omega}
+    \quad \forall t \in \mathcal{T},\ \forall \omega \in \Omega,
+\end{equation}
+and for buying energy matched (\verb|DA_buy_bid_LB| and \verb|DA_buy_bid_UB|)
+\begin{equation} \label{EQ:DA_buy_bid_LB}
+    \underline{P}^{DA}\, ie^{DA-}_{t, \omega}
+    \leq e^{DA-}_{t, \omega}
+    \leq \bigl(P^B + P^{EL} + P^{CP}
+               + u_{sb}^{FC}\,P^{FC} + \overline{D}_t\bigr)\,
+         ie^{DA-}_{t, \omega}
+    \quad \forall t \in \mathcal{T},\ \forall \omega \in \Omega.
+\end{equation}
+
+At every scenario, we impose that it is not possible to simultaneously have
+matched bought and sold energy quantities (\verb|DA_buy_or_sell|)
+\begin{equation} \label{EQ:DA_buy_or_sell}
+    ie^{DA+}_{t, \omega} + ie^{DA-}_{t, \omega} \leq 1
+    \quad \forall t \in \mathcal{T},\ \forall \omega \in \Omega.
+\end{equation}
+Note that this allows the EC to submit neither of the two.
+
+Finally, to construct a bidding curve from the scenario results, the quantities
+offered must be monotone w.r.t.\ scenario prices.
+For the day-ahead market (\verb|DA_bid_mono_1|)
+\begin{equation} \label{EQ:DA_bid_mono_1}
+    e^{DA+}_{t, \omega} \leq e^{DA+}_{t, \omega'}
+    \quad \forall (t, \omega, \omega') \in \mathcal{SSD},
+\end{equation}
+and (\verb|DA_bid_mono_2|)
+\begin{equation} \label{EQ:DA_bid_mono_2}
+    e^{DA-}_{t, \omega} \geq e^{DA-}_{t, \omega'}
+    \quad \forall (t, \omega, \omega') \in \mathcal{SSD}.
+\end{equation}
+In scenarios where the EC sells electricity, the higher the price, the larger
+the selling quantity matched should be. Symmetrically, in scenarios where the EC
+buys electricity, the higher the price, the smaller the buying quantity matched
+should be.
+
+
+\subsection{Reserve Market}
+
+We assume that the wind and solar farms cannot contribute to provide reserve. The other elements of the energy community (Battery, Flexible Demand, Electrolyzer, Fuel Cell) can. This follows the approach by \textcite{Heredia18}, where VPP's bid to reserve markets is limited by the battery capabilities only.
+
+We model the participation of the EC in the reserve market with a unique price-accepting bid for all scenarios. This is different to the modelling of day-ahead, where we are interested in obtaining day-ahead bid curves, which require a more detailed modelling.
+
+%To model reserve bids, we use recourse variables only because price-accepting reserve bids do not seem to have a clear motivation. From these recourse variables, we build buying and selling bid curves a posteriori, from the results obtained at each scenario. The role of first stage variables is represented in the reserve by the binary variable indicating if the EC submitted a bid to the day-ahead market. Recall that  MIBEL market rules establish that a market participant needs to have an accepted day-ahead market bid to participate in the reserve market.
+
+\begin{tabularx}{\textwidth}{l l}
+    \textbf{Sets:} \\
+%		$\mathcal{SSR}$ (\verb|Ssr|) & $\{(t, l, j) \in \mathcal{T} \times \Omega \times \Omega \hspace{2mm} | \hspace{2mm} l \neq j, \hspace{2mm} \lambda^R_{t, l} \leq \lambda^R_{t, j}, \hspace{2mm} \exists k \in \Omega \hspace{2mm} \text{s.t.} \hspace{2mm} \# \mathcal{C}_{1, k} > 1 \hspace{2mm} \text{and} \hspace{2mm} l, j \in \mathcal{C}_{1, k} \}$.  \\
+%	& Rather technical. Used to ensure monotonicity of reserve bids \\
+%	& w.r.t. reserve price realisations. \\  
+%	& For every $t \in \mathcal{T}$ provides the scenario pairs $(l, j)$ in each DA cluster s.t. $\lambda^R_{t, l} \leq \lambda^R_{t, j}$ \\
+%	& (order is important). The use of DA clusters is due to the assumption that DA \\
+%	& prices are revealed before RM gate clousure.\\	   
+    \\
+    \textbf{Parameters:} \\
+    	$\lambda^{R}_{t, \omega}$ (\verb|lR|) & reserve market price at time $t \in \mathcal{T}$ under scenario $\omega \in \Omega$ [\euro/MWh]. \\
+    	$T^R$ (\verb|TSR|) & duration of reserve response [h]. \\
+    	$R^{U, FD}_t$ (\verb|RUFD|) & upper bound on the upwards reserve provided by flexible demand [MW]. \\
+    	$R^{D, FD}_t$ (\verb|RDFD|) & upper bound on the downwards reserve provided by flexible demand [MW]. \\
+    \\
+       
+    \textbf{Variables:} \\
+	$r^{U}_{t, \omega}$ (\verb|rU|) & upward reserve matched by the EC at time $t \in \mathcal{T}$ under scenario $\omega \in \Omega$ [MW]. \\
+    $r^{D}_{t, \omega}$ (\verb|rD|) & downward reserve matched by the EC at time $t \in \mathcal{T}$ under scenario $\omega \in \Omega$ [MW]. \\
+    $r^{U, B}_{t, \omega}$ (\verb|rU_B|) & BESS component of upward reserve matched at time $t \in \mathcal{T}$ \\
+    & under scenario $\omega \in \Omega$ [MW]. \\
+    $r^{D, B}_{t, \omega}$ (\verb|rD_B|) & BESS component of downward reserve matched at time $t \in \mathcal{T}$ \\
+    & under scenario $\omega \in \Omega$ [MW]. \\
+    $r^{U, FD}_{t, \omega}$ (\verb|rU_FD|) & flexible demand component of upward reserve matched at time $t \in \mathcal{T}$ \\
+    & under scenario $\omega \in \Omega$ [MW]. \\
+    $r^{D, FD}_{t, \omega}$ (\verb|rD_FD|) & flexible demand component of downward reserve matched at time $t \in \mathcal{T}$ \\
+    & under scenario $\omega \in \Omega$ [MW]. \\
+    $r^{U,EL}_{t,\omega}$ (\verb|rU_EL|) & EL component of upward reserve [MW]. \\
+    $r^{D,EL}_{t,\omega}$ (\verb|rD_EL|) & EL component of downward reserve [MW]. \\
+    $r^{U,FC}_{t,\omega}$ (\verb|rU_FC|) & FC component of upward reserve [MW]. \\
+    $r^{D,FC}_{t,\omega}$ (\verb|rD_FC|) & FC component of downward reserve [MW]. \\
+    \\
+\end{tabularx}
+
+First, we impose that the reserve variables are nonnegative (\verb|at variable definition|)
+\begin{align}
+    & r^{U}_{t, \omega} \geq 0, \quad r^{D}_{t, \omega} \geq 0, \quad
+      r^{U, B}_{t, \omega} \geq 0, \quad r^{D, B}_{t, \omega} \geq 0, \quad
+      r^{U, FD}_{t, \omega} \geq 0, \quad r^{D, FD}_{t, \omega} \geq 0, \notag \\[1ex]
+    & r^{U, EL}_{t, \omega} \geq 0, \quad r^{D, EL}_{t, \omega} \geq 0, \quad
+      r^{U, FC}_{t, \omega} \geq 0, \quad r^{D, FC}_{t, \omega} \geq 0
+    \label{EQ:RVarDef}
+\end{align}
+for all $t \in \mathcal{T}$ and $\omega \in \Omega$.
+
+The reserve provided by the EC is the sum of the reserve provided by those elements able to provide reserve. This is (\verb|RM_components_U|)
+\begin{equation} \label{EQ:RUcomp}
+    r^{U}_{t,\omega} = r^{U,B}_{t,\omega} + r^{U,FD}_{t,\omega}
+  + r^{U,EL}_{t,\omega} + r^{U,FC}_{t,\omega} \quad \forall t \in \mathcal{T}, \ \forall \omega \in \Omega
+\end{equation}
+and (\verb|RM_components_D|)
+\begin{equation} \label{EQ:RDcomp}
+	r^{D}_{t,\omega} = r^{D,B}_{t,\omega} + r^{D,FD}_{t,\omega}
+  + r^{D,EL}_{t,\omega} + r^{D,FC}_{t,\omega} \quad \forall t \in \mathcal{T}, \ \forall \omega \in \Omega.
+\end{equation}
+
+%To be able to construct a bidding curve for the EC from the results obtained at every scenario, the quantities offered in electricity markets have to be monotonically increasing w.r.t. the scenario prices. For the reserve market, this is guaranteed with the following constraints (\verb|RM_bid_mono_1|)
+%\begin{equation} \label{EQ:RUmono}
+%	r^{U}_{t, \omega} \leq r^{U}_{t, \omega'} \quad \forall (t, \omega, \omega') \in \mathcal{SSR}
+%\end{equation}
+%and (\verb|RM_bid_mono_2|)
+%\begin{equation} \label{EQ:RDmono}
+%	r^{D}_{t, \omega} \leq r^{D}_{t, \omega'} \quad \forall (t, \omega, \omega') \in \mathcal{SSR}.
+%\end{equation}
+
+We ensure that the elements of the energy community capable of providing reserve would be capable to satisfy their reserve commitments if instructed to do so. 
+
+For flexible demand, we ensure that there is enough flexibility (in energy terms) at every time step to satisfy the reserve requirements through (\verb|FlexDem_UB|)
+\begin{equation} \label{EQ:FlexDemand_UB}
+	fd_{t, \omega} + T^R r^{D, FD}_{t, \omega} \leq \overline{D}_t \quad \forall t \in \mathcal{T}, \ \forall \omega \in \Omega
+\end{equation}
+and (\verb|FlexDem_LB|)
+\begin{equation} \label{EQ:FlexDemand_LB}
+	\underline{D}_t \leq fd_{t, \omega} - T^R r^{U, FD}_{t, \omega} \quad \forall t \in \mathcal{T}, \ \forall \omega \in \Omega.
+\end{equation}
+
+We also ensure that there is enough flexibility (in power terms) at every time step to satisfy the reserve requirements using (\verb|FlexDemP_DReserve|)
+\begin{equation} \label{EQ:FlexDemP_DReserve}
+	r^{D, FD}_{t, \omega} \leq R^{D, FD}_t \quad \forall t \in \mathcal{T}, \ \forall \omega \in \Omega
+\end{equation}
+and (\verb|FlexDemP_UReserve|)
+\begin{equation} \label{EQ:FlexDemP_UReserve}
+	r^{U, FD}_{t, \omega} \leq R^{U, FD}_t \quad \forall t \in \mathcal{T}, \ \forall \omega \in \Omega.
+\end{equation}
+
+The operation of the battery also needs to take into account the committed reserve. For the charging and discharging rates, we have (\verb|VPP_RU2s|):
+\begin{equation} \label{EQ:VPP_RU2s}
+	r^{U, B} _{t, \omega} - c_{t, \omega} + d_{t, \omega}  \leq P^B \quad \forall t \in \mathcal{T}, \ \forall \omega \in \Omega
+\end{equation}
+and (\verb|VPP_RD2s|)
+\begin{equation} \label{EQ:VPP_RD2s}
+	r^{D, B}_{t, \omega} + c_{t, \omega} - d_{t, \omega} \leq P^B \quad \forall t \in \mathcal{T}, \ \forall \omega \in \Omega.
+\end{equation}
+
+The reserve provided by the battery also requires a sufficiently high (resp. low) state of charge so that the upwards (resp. downards) reserve can be provided, if needed. The following constraints ensure it for one time step (\verb|VPP_RU_SOCV|):
+\begin{equation} \label{EQ:VPP_RU_SOCV}
+	\underline{\SOC} \leq \soc_{t, \omega} - \frac{T^R r^{U, B}_{t, \omega}}{\eta^B E^B} \quad \forall t \in \mathcal{T}, \ \forall \omega \in \Omega
+\end{equation}
+and  (\verb|VPP_RD_SOCV|)
+\begin{equation} \label{EQ:VPP_RD_SOCV}
+	\soc_{t, \omega} + \frac{T^R r^{D, B}_{t, \omega} }{E^B} \leq \overline{\SOC} \quad \forall t \in \mathcal{T}, \ \forall \omega \in \Omega.
+\end{equation}
+
+Electrolyzer operation also needs to take into account the committed reserve. It
+must remain within its operating range even when reserve activation is triggered.
+Upward reserve can be provided only in \emph{on} state
+\begin{equation} \label{EQ:RM_EL_RU}
+    e^{EL,on}_{t,\omega} - r^{U, EL}_{t, \omega} T^R
+    \geq \underline{u}^{EL}\, P^{EL}\, \Delta t\, i^{EL,on}_{t,\omega}
+    \quad \forall t \in \mathcal{T},\ \forall \omega \in \Omega.
+\end{equation}
+Downward reserve can be provided both in \emph{on} and in \emph{standby} state
+\begin{equation} \label{EQ:RM_EL_RD}
+    e^{EL}_{t,\omega} + r^{D, EL}_{t, \omega} T^R
+    \leq P^{EL}\, \Delta t\, (1 - i^{EL,off}_{t,\omega})
+    \quad \forall t \in \mathcal{T},\ \forall \omega \in \Omega.
+\end{equation}
+Observe that \eqref{EQ:EL_min_power} is redundant in the presence of
+\eqref{EQ:RM_EL_RU}. However, \eqref{EQ:EL_max_power} and \eqref{EQ:RM_EL_RD}
+are both needed when considering the three operating states of the electrolyzer.
+This asymmetry arises because the electrolyzer can provide upward reserve only
+in \emph{on} state, but it can provide downward reserve in both \emph{on} and
+\emph{standby} states.
+
+When the electrolyzer provides downward reserve, we must respect the $H_{2}$
+storage upper limit
+\begin{equation} \label{EQ:RM_EL_RD_LOH}
+    \text{LoH}_{t,\omega}
+    + \frac{T^R\, r^{D, EL}_{t,\omega}}{sc^{EL}\, H^{HS}}
+    \leq \overline{\text{LoH}}
+    \quad \forall t \in \mathcal{T},\ \forall \omega \in \Omega.
+\end{equation}
+When the electrolyzer provides upward reserve, we must ensure the $H_{2}$
+storage lower limit is not violated
+\begin{equation} \label{EQ:RM_EL_RU_LOH}
+    \text{LoH}_{t,\omega}
+    - \frac{T^R\, r^{U, EL}_{t,\omega}}{sc^{EL}\, H^{HS}}
+    \geq \underline{\text{LoH}}
+    \quad \forall t \in \mathcal{T},\ \forall \omega \in \Omega.
+\end{equation}
+
+Fuel cell operation also needs to take into account the committed reserve. The
+fuel cell must remain within its operating range even when reserve activation is
+triggered. Upward reserve can be provided both in \emph{on} and \emph{standby}
+state:
+\begin{equation} \label{EQ:RM_FC_RU}
+    e^{FC,on}_{t,\omega} - e^{FC,sb}_{t,\omega} + r^{U, FC}_{t, \omega}\, T^R
+    \leq P^{FC}\, \Delta t\, (1 - i^{FC,off}_{t,\omega})
+    \quad \forall t \in \mathcal{T},\ \forall \omega \in \Omega.
+\end{equation}
+Downward reserve can be provided only in \emph{on} state:
+\begin{equation} \label{EQ:RM_FC_RD}
+    e^{FC,on}_{t,\omega} - r^{D, FC}_{t, \omega}\, T^R
+    \geq \underline{u}^{FC}\, P^{FC}\, \Delta t\, i^{FC,on}_{t,\omega}
+    \quad \forall t \in \mathcal{T},\ \forall \omega \in \Omega.
+\end{equation}
+Observe that \eqref{EQ:FC_min_power} is redundant in the presence of
+\eqref{EQ:RM_FC_RD}. However, \eqref{EQ:FC_max_power} and \eqref{EQ:RM_FC_RU}
+are both needed when considering the three operating states of the fuel cell.
+This asymmetry arises because the fuel cell can provide downward reserve only
+in \emph{on} state, but it can provide upward reserve in both \emph{on} and
+\emph{standby} states.
+
+To ensure enough hydrogen is available in the tank to supply upward reserve:
+\begin{equation} \label{EQ:RM_FC_RU_LOH}
+    \text{LoH}_{t,\omega}
+    - \frac{T^R\, r^{U, FC}_{t,\omega}\, sc^{FC}}{\eta^{HS}\, H^{HS}}
+    \geq \underline{\text{LoH}}
+    \quad \forall t \in \mathcal{T},\ \forall \omega \in \Omega.
+\end{equation}
+When the FC provides downward reserve we must ensure to respect the $H_{2}$
+storage upper limit:
+\begin{equation} \label{EQ:RM_FC_RD_LOH}
+    \text{LoH}_{t,\omega}
+    + \frac{T^R\, r^{D, FC}_{t,\omega}\, sc^{FC}}{\eta^{HS}\, H^{HS}}
+    \leq \overline{\text{LoH}}
+    \quad \forall t \in \mathcal{T},\ \forall \omega \in \Omega.
+\end{equation}
+
+\subsection{Intraday Markets}
+
+We model the participation of the EC in intraday markets with a unique price-accepting bid for all scenarios. This is different to the modelling of day-ahead, where we are interested in obtaining day-ahead bid curves, which require a more detailed modelling.
+
+%To model intraday markets, we use recourse variables only. The role of first stage variables is played by the binary variables indicating whether the EC submitted a bid (buying or selling) to the day ahead market at that time.
+
+\begin{tabularx}{\textwidth}{l l}
+    \textbf{Sets:} \\
+%    	$\mathcal{SSI}$ (\verb|Ssi|) & $\{(i, t, l, j) \in \mathcal{I} \times \mathcal{T}_i \times \Omega \times \Omega \hspace{2mm} | \hspace{2mm} l \neq j, \hspace{2mm} \lambda^I_{i, t, l} \leq \lambda^I_{i, t, l}, \hspace{2mm}$ \\ 
+%	& $\exists k \in \Omega \hspace{2mm} \text{s.t.} \hspace{2mm} \# \mathcal{C}_{SG^{IM}_i - 1, k} > 1 \hspace{2mm} \text{and} \hspace{2mm} l, j \in \mathcal{C}_{1, k} \}$     \\
+%	& Rather technical. Used to ensure monotonicity of intraday market bids \\
+%	& w.r.t. intraday market price realisations. \\
+%	& For every $i \in \mathcal{I}$ and $t \in \mathcal{T}$ provides the scenario pairs $(l, j)$ in the previous stage \\
+%	& cluster s.t. $\lambda^I_{i, t, l} \leq \lambda^I_{i, t, j}$ (order is important). The use of previous stage clusters is \\
+%	& due to the assumption that the parameters in that cluster are revealed \\
+%	& before IM gate clousure.\\	 
+    \\
+    
+    \textbf{Parameters:} \\
+    	$\lambda^I_{i, t, \omega}$ (\verb|lI|) & intraday market $i \in \mathcal{I}$ price at time $t \in \mathcal{T}$ under scenario $\omega \in \Omega$ [\euro/MWh]. \\
+	$R^{IDA}$ (\verb|maxTIM|) & bound on the ratio of energy traded in intraday markets and day ahead \\
+	& market (to avoid speculation).\\
+    \\ 
+       
+    \textbf{Variables:} \\
+    $e^{IM}_{i, t, \omega}$ (\verb|eIM|) & energy matched by the EC at intraday market $i \in \mathcal{I}$ at time $t \in \mathcal{T}$ \\
+    & under scenario $\omega \in \Omega$ [MWh]. \\
+	\\
+\end{tabularx}
+
+To avoid speculative behaviour, the bid of the EC to intraday markets should be small compared to the day ahead market (\verb|IM_bounds_1| and \verb|IM_bounds_2|)
+\begin{equation} \label{EQ:DM_IM_1}
+	-R^{IDA} (e^{DA+}_{t, \omega} + e^{DA-}_{t, \omega})  \leq \sum_{i \in \mathcal{I}_t} e^{IM}_{i, t, \omega} \leq R^{IDA} (e^{DA+}_{t, \omega} + e^{DA-}_{t, \omega}) \quad \forall t \in \mathcal{T}, \ \forall \omega \in \Omega
+\end{equation}
+and (\verb|IM_bounds_3| and \verb|IM_bounds_4|)
+\begin{equation} \label{EQ:IM_bounds_3-4}
+	-R^{IDA} (e^{DA+}_{t, \omega} + e^{DA-}_{t, \omega}) \leq e^{IM}_{i, t, \omega} \leq R^{IDA} (e^{DA+}_{t, \omega} + e^{DA-}_{t, \omega}) \quad \forall i \in \mathcal{I}, \ \forall t \in \mathcal{T}_i, \ \forall \omega \in \Omega.
+\end{equation}
+
+%To build a bidding curve for every intraday market from the results obtained at each scenario, the quantities matched in intraday markets have to be monotonically increasing w.r.t. the scenario prices. This is guaranteed with the following constraints (\verb|lI_bid|):
+%\begin{equation} \label{EQ:lI_bid}
+%	e^{IM}_{i, t, \omega} \leq e^{IM}_{i, t, \omega'} \quad \forall (i, t, \omega, \omega') \in \mathcal{SSI}.
+%\end{equation}
+
+\subsection{System Imbalances}
+
+\begin{tabularx}{\textwidth}{l l}
+    \textbf{Parameters:} \\
+    $\lambda^{IB+}_{t, \omega}$ (\verb|lPIB|) & positive imbalance price at time $t \in \mathcal{T}$ under scenario $\omega \in \Omega$ [\euro/MWh]. \\
+	$\lambda^{IB-}_{t, \omega}$ (\verb|lNIB|) & negative imbalance price at time $t \in \mathcal{T}$ under scenario $\omega \in \Omega$ [\euro/MWh]. \\
+    $P^{IB+}_{t, \omega}$ (\verb|PIB_p|) & upper bound on the positive imbalance at time $t \in \mathcal{T}$ \\
+    & under scenario $\omega \in \Omega$ [MWh]. \\
+	$P^{IB-}_{t, \omega}$ (\verb|PIB_m|) & upper bound on the negative imbalance at time $t \in \mathcal{T}$ \\ 
+	& under scenario $\omega \in \Omega$ [MWh]. \\
+    \\ 
+       
+    \textbf{Variables:} \\
+    $p_{t, \omega}^{IB-}$ (\verb|pIB_m|) & negative imbalance of EC at time $t \in \mathcal{T}$ under scenario $\omega \in \Omega$ [MWh].	\\
+	$p_{t, \omega}^{IB+}$ (\verb|pIB_p|) & positive imbalance of EC at time $t \in \mathcal{T}$ under scenario $\omega \in \Omega$ [MWh].	\\ 
+    \\
+\end{tabularx}
+
+First, we impose that the imbalance variables are nonnegative (\verb|at variable definition|)
+\begin{equation} \label{EQ:IBVarDef}
+    p_{t, \omega}^{IB+} \geq 0, \quad p_{t, \omega}^{IB-} \geq 0 \quad \forall t \in \mathcal{T}, \ \forall \omega \in \Omega.
+\end{equation}
+
+The imbalances of the EC are defined in the following equation (\verb|Imbalances|)
+\begin{equation} \label{EQ:IBDef}
+  p^{IB+}_{t,\omega} - p^{IB-}_{t,\omega}
+  = e^{DA-}_{t,\omega} + W_{t,\omega} + PV_{t,\omega}
+      + d_{t,\omega} + e^{FC,on}_{t,\omega}
+  - \\
+  \Bigl(e^{DA+}_{t,\omega} + \sum_{i \in \mathcal{I}_t} e^{IM}_{i,t,\omega}
+      + fd_{t,\omega} + c_{t,\omega}
+      + e^{EL}_{t,\omega} + e^{CP}_{t,\omega} + e^{FC,sb}_{t,\omega}\Bigr) \quad \forall t \in \mathcal{T}, \ \forall \omega \in \Omega.
+\end{equation}
+
+We introduce upper and lower bounds to the imbalances, to avoid speculative behaviour (\verb|IB_pos_UB|):
+\begin{equation} \label{EQ:VPP_IB_MAX}
+	p_{t, \omega}^{IB+} \leq P_{t, \omega}^{IB+} \quad \forall t \in \mathcal{T}, \ \forall \omega \in \Omega
+\end{equation}
+and (\verb|IB_neg_UB|)
+\begin{equation} \label{EQ:VPP_IB_MIN}
+	p_{t, \omega}^{IB-} \leq P_{t, \omega}^{IB-} \quad \forall t \in \mathcal{T}, \ \forall \omega \in \Omega.
+\end{equation}
+
+
+
+\section{Nonanticipativity Constraints}
+\label{SEC:NonanticipativityConstraints}
+
+The nonanticipativity constraints ensure that every decision is made with the
+amount of information available at the time of making that decision.
+
+For day-ahead and reserve market variables, the nonanticipativity constraints
+are (\verb|NAC_eDA_p|, \verb|NAC_eDA_m|, \verb|NAC_ieDA_p|, \verb|NAC_ieDA_m|,
+\verb|NAC_rU|, \verb|NAC_rD|, \verb|NAC_rU_B|, \verb|NAC_rD_B|,
+\verb|NAC_rU_EL|, \verb|NAC_rD_EL|, \verb|NAC_rU_FC|, \verb|NAC_rD_FC|)
+\begin{equation}
+\left\{
+\begin{aligned}
+  e^{DA+}_{t,\omega}   &= e^{DA+}_{t,\omega'}, &\quad
+  e^{DA-}_{t,\omega}   &= e^{DA-}_{t,\omega'}, \\
+  ie^{DA+}_{t,\omega}  &= ie^{DA+}_{t,\omega'}, &\quad
+  ie^{DA-}_{t,\omega}  &= ie^{DA-}_{t,\omega'}, \\
+  r^{U}_{t,\omega}     &= r^{U}_{t,\omega'},    &\quad
+  r^{D}_{t,\omega}     &= r^{D}_{t,\omega'},    \\
+  r^{U,B}_{t,\omega}   &= r^{U,B}_{t,\omega'},  &\quad
+  r^{D,B}_{t,\omega}   &= r^{D,B}_{t,\omega'},  \\
+  r^{U,FD}_{t,\omega}  &= r^{U,FD}_{t,\omega'}, &\quad
+  r^{D,FD}_{t,\omega}  &= r^{D,FD}_{t,\omega'}, \\
+  r^{U,EL}_{t,\omega}  &= r^{U,EL}_{t,\omega'}, &\quad
+  r^{D,EL}_{t,\omega}  &= r^{D,EL}_{t,\omega'}, \\
+  r^{U,FC}_{t,\omega}  &= r^{U,FC}_{t,\omega'}, &\quad
+  r^{D,FC}_{t,\omega}  &= r^{D,FC}_{t,\omega'}
+\end{aligned}
+\right.
+\quad \forall t \in \mathcal{T},\ \forall \omega \in \Omega,\
+\forall \omega' \in \mathcal{C}_{1, \omega},\ \omega \neq \omega'.
+\label{EQ:NAC_DM_RM}
+\end{equation}
+
+For intraday market variables, we have (\verb|NAC_eIM|)
+\begin{equation} \label{EQ:NAC_IM}
+    e^{IM}_{i,t,\omega} = e^{IM}_{i,t,\omega'}
+    \quad \forall i \in \mathcal{I},\ \forall t \in \mathcal{T}_i,\
+    \forall \omega \in \Omega,\ \forall \omega' \in \mathcal{C}_{SG^{IM}_i - 1,\, \omega},\
+    \omega \neq \omega'.
+\end{equation}
+
+For imbalance variables, positive and negative, we have
+(\verb|NAC_pIB_p|, \verb|NAC_pIB_m|)
+\begin{equation} \label{EQ:NAC_pPIB}
+    p^{IB+}_{t,\omega} = p^{IB+}_{t,\omega'}, \quad
+    p^{IB-}_{t,\omega} = p^{IB-}_{t,\omega'}
+    \quad \forall t \in \mathcal{T},\ \forall \omega \in \Omega,\
+    \forall \omega' \in \mathcal{C}_{SG^{WP}_t,\, \omega},\ \omega \neq \omega'.
+\end{equation}
+
+For flexible demand variables, we have
+(\verb|NAC_var_fd|, \verb|NAC_var_afd_p|, \verb|NAC_var_afd_m|)
+\begin{equation} \label{EQ:NAC_FD}
+    fd_{t,\omega} = fd_{t,\omega'}, \quad
+    afd^+_{t,\omega} = afd^+_{t,\omega'}, \quad
+    afd^-_{t,\omega} = afd^-_{t,\omega'}
+    \quad \forall t \in \mathcal{T},\ \forall \omega \in \Omega,\
+    \forall \omega' \in \mathcal{C}_{SG^{WP}_t - 1,\, \omega},\ \omega \neq \omega'.
+\end{equation}
+
+Finally, for BESS, EL, CP, HS and FC operational variables, we have
+(\verb|NAC_cV|, \verb|NAC_dV|, $\ldots$)
+\begin{equation}
+\left\{
+\begin{aligned}
+  c_{t,\omega}          &= c_{t,\omega'},         &\quad
+  d_{t,\omega}          &= d_{t,\omega'},          \\[0.5ex]
+  id_{t,\omega}         &= id_{t,\omega'},         &\quad
+  \text{soc}_{t,\omega} &= \text{soc}_{t,\omega'}, \\[0.5ex]
+  e^{EL}_{t,\omega}     &= e^{EL}_{t,\omega'},     &\quad
+  e^{EL,on}_{t,\omega}  &= e^{EL,on}_{t,\omega'},  \\[0.5ex]
+  e^{EL,sb}_{t,\omega}  &= e^{EL,sb}_{t,\omega'},  &\quad
+  h^{EL}_{t,\omega}     &= h^{EL}_{t,\omega'},      \\[0.5ex]
+  h^{\mathrm{dir},EL}_{t,\omega}  &= h^{\mathrm{dir},EL}_{t,\omega'},  &\quad
+  h^{\mathrm{comp},EL}_{t,\omega} &= h^{\mathrm{comp},EL}_{t,\omega'}, \\[0.5ex]
+  i^{EL,on}_{t,\omega}  &= i^{EL,on}_{t,\omega'},  &\quad
+  i^{EL,sb}_{t,\omega}  &= i^{EL,sb}_{t,\omega'},  \\[0.5ex]
+  i^{EL,off}_{t,\omega} &= i^{EL,off}_{t,\omega'}, &\quad
+  i^{EL,warm}_{t,\omega}&= i^{EL,warm}_{t,\omega'}, \\[0.5ex]
+  i^{EL,cold}_{t,\omega}&= i^{EL,cold}_{t,\omega'}, &\quad
+  e^{CP}_{t,\omega}     &= e^{CP}_{t,\omega'},       \\[0.5ex]
+  h^{\mathrm{dir},CP}_{t,\omega} &= h^{\mathrm{dir},CP}_{t,\omega'}, &\quad
+  h^{c,HS}_{t,\omega}   &= h^{c,HS}_{t,\omega'},    \\[0.5ex]
+  h^{d,HS}_{t,\omega}   &= h^{d,HS}_{t,\omega'},    &\quad
+  \text{LoH}_{t,\omega} &= \text{LoH}_{t,\omega'},  \\[0.5ex]
+  h^{\mathrm{dir},HS}_{t,\omega} &= h^{\mathrm{dir},HS}_{t,\omega'}, &\quad
+  i^{HS}_{t,\omega}     &= i^{HS}_{t,\omega'},       \\[0.5ex]
+  h^{FC}_{t,\omega}     &= h^{FC}_{t,\omega'},       &\quad
+  e^{FC,on}_{t,\omega}  &= e^{FC,on}_{t,\omega'},    \\[0.5ex]
+  e^{FC,sb}_{t,\omega}  &= e^{FC,sb}_{t,\omega'},    &\quad
+  i^{FC,on}_{t,\omega}  &= i^{FC,on}_{t,\omega'},    \\[0.5ex]
+  i^{FC,sb}_{t,\omega}  &= i^{FC,sb}_{t,\omega'},    &\quad
+  i^{FC,off}_{t,\omega} &= i^{FC,off}_{t,\omega'},   \\[0.5ex]
+  i^{FC,warm}_{t,\omega}&= i^{FC,warm}_{t,\omega'},  &\quad
+  i^{FC,cold}_{t,\omega}&= i^{FC,cold}_{t,\omega'},  \\[0.5ex]
+  h^{sold}_{t,\omega}   &= h^{sold}_{t,\omega'}
+\end{aligned}
+\right.
+\quad \forall t \in \mathcal{T},\ \forall \omega \in \Omega,\
+\forall \omega' \in \mathcal{C}_{SG^{WP}_t - 1,\, \omega},\ \omega \neq \omega'.
+\label{EQ:NAC_ops}
+\end{equation}
+
+\begin{note}
+Observe that each of the nonanticipativity constraints  might define the same constraint multiple times. This is not necessary in the implementation of the model, and in fact, we do not include them multiple times in our implementation.
+	
+Moreover, it is possible to reduce the number of constraints further. For example, let $a_{\omega}$ be a decision variable of stage $sg$ and consider the cluster $\mathcal{C}_{sg, \omega_1} = \{ \omega_1, \omega_2, \omega_3 \}$. We just need the following nonanticipativity constraints 
+$$
+a_{\omega_1} = a_{\omega_2}, \ a_{\omega_2} = a_{\omega_3},
+$$
+instead of the full set of nonanticipativity constraints (without repetitions)
+$$
+a_{\omega_1} = a_{\omega_2}, \ a_{\omega_1} = a_{\omega_3}, a_{\omega_2} = a_{\omega_3}.
+$$
+
+In practise, a presolver might also take care of this if not implemented efficiently.	
+\end{note}
+
+
+\section{Objective Function}
+\label{SEC:ObjectiveFunction}
+We define the objective function Expected Profit (EP) as follows:
+\begin{subequations}
+\begin{align}
+    EP & := \sum_{t \in \mathcal{T}} \sum_{\omega \in \Omega}
+            \Pi_{\omega}\, \lambda^D_{t,\omega}
+            \left(e^{DA+}_{t,\omega} - e^{DA-}_{t,\omega}\right)
+            \label{EQ:DAincome} \\
+       & + \sum_{t \in \mathcal{T}} \sum_{\omega \in \Omega}
+            \Pi_{\omega}\, \lambda^R_{t,\omega}
+            \left(r^{D}_{t,\omega} + r^{U}_{t,\omega}\right)
+            \label{EQ:RESincome} \\
+       & + \sum_{t \in \mathcal{T}} \sum_{\omega \in \Omega}
+            \Pi_{\omega} \sum_{i \in \mathcal{I}_t}
+            \lambda^{I}_{i,t,\omega}\, e^{IM}_{i,t,\omega}
+            \label{EQ:IMincome} \\
+       & + \sum_{t \in \mathcal{T}} \sum_{\omega \in \Omega}
+            \Pi_{\omega}\, \lambda^{IB+}_{t,\omega}\, p^{IB+}_{t,\omega}
+            \label{EQ:PosIBcollectRights} \\
+       & + \sum_{t \in \mathcal{T}} \sum_{\omega \in \Omega}
+            \Pi_{\omega}\, \lambda^{H}\, h^{\rm sold}_{t,\omega}
+            \label{EQ:HydrogenRevenue} \\
+       & + \sum_{t \in \mathcal{T}}
+            \lambda^{H}\, h^{\rm DEM}_{t}
+            \label{EQ:InternalH2DemandRevenue} \\
+       & - \sum_{t \in \mathcal{T}} \sum_{\omega \in \Omega}
+            \Pi_{\omega}\, \lambda^{IB-}_{t,\omega}\, p^{IB-}_{t,\omega}
+            \label{EQ:NegIBPayObligations} \\
+       & - \sum_{t \in \mathcal{T}} \sum_{\omega \in \Omega}
+            \Pi_{\omega}\, C^{FD}
+            \left(afd^+_{t,\omega} + afd^-_{t,\omega}\right)
+            \label{EQ:FlexDemCost} \\
+       & - \sum_{t \in \mathcal{T}} \sum_{\omega \in \Omega}
+            \Pi_{\omega}\, \alpha^{B}
+            \left(\frac{d_{t,\omega} + c_{t,\omega}}{2\, E^{B}}\right) \Delta t
+            \label{EQ:BatteryAgeing} \\
+       & - \sum_{t \in \mathcal{T}} \sum_{\omega \in \Omega}
+            \Pi_{\omega}\, \lambda^{wat}\, swc^{EL}\, h^{EL}_{t,\omega}
+            \label{EQ:WaterCost} \\
+       & - \sum_{t \in \mathcal{T}} \sum_{\omega \in \Omega}
+            \Pi_{\omega}\, \lambda_{warm\_st}^{EL}\, i^{EL,warm}_{t,\omega}
+            \label{EQ:EL_WarmStartupCost} \\
+       & - \sum_{t \in \mathcal{T}} \sum_{\omega \in \Omega}
+            \Pi_{\omega}\, \lambda_{cold\_st}^{EL}\, i^{EL,cold}_{t,\omega}
+            \label{EQ:EL_ColdStartupCost} \\
+       & - \sum_{t \in \mathcal{T}} \sum_{\omega \in \Omega}
+            \Pi_{\omega}\, \alpha^{EL}\, \Delta t\, i^{EL,on}_{t,\omega}
+            \label{EQ:ELReplCost} \\
+       & - \sum_{t \in \mathcal{T}} \sum_{\omega \in \Omega}
+            \Pi_{\omega}\, \lambda_{warm\_st}^{FC}\, i^{FC,warm}_{t,\omega}
+            \label{EQ:FC_WarmStartupCost} \\
+       & - \sum_{t \in \mathcal{T}} \sum_{\omega \in \Omega}
+            \Pi_{\omega}\, \lambda_{cold\_st}^{FC}\, i^{FC,cold}_{t,\omega}
+            \label{EQ:FC_ColdStartupCost} \\
+       & - \sum_{t \in \mathcal{T}} \sum_{\omega \in \Omega}
+            \Pi_{\omega}\, \alpha^{FC}\, \Delta t\, i^{FC,on}_{t,\omega}
+            \label{EQ:FCReplCost}
+\end{align}
+\label{EQ:EECSW}
+\end{subequations}
+
+The first term \eqref{EQ:DAincome} represents the EC's expected income or cost
+from the day-ahead market. The second term \eqref{EQ:RESincome} represents the
+EC's expected income from the reserve market. The third term \eqref{EQ:IMincome}
+represents the EC's expected income or cost from intraday markets. The fourth
+term \eqref{EQ:PosIBcollectRights} represents the EC's expected positive
+imbalance collection rights. The fifth term \eqref{EQ:HydrogenRevenue}
+represents the expected income from hydrogen market sales. The sixth term
+\eqref{EQ:InternalH2DemandRevenue} represents revenue earned by serving
+internal hydrogen demand. Observe that this term is constant, and hence does
+not affect the optimal solution, but is kept for convenience in the analysis of
+objective function values.
+
+The seventh term \eqref{EQ:NegIBPayObligations} represents the EC's expected
+imbalance payment obligations. The eighth term \eqref{EQ:FlexDemCost} accounts
+for the cost of activating flexible demand. The ninth term
+\eqref{EQ:BatteryAgeing} represents the battery degradation cost. The tenth
+term \eqref{EQ:WaterCost} accounts for the cost of water consumed by the
+electrolyzer. The eleventh term \eqref{EQ:EL_WarmStartupCost} accounts for each
+warm start event (standby$\rightarrow$on) of the electrolyzer. The twelfth term
+\eqref{EQ:EL_ColdStartupCost} accounts for each cold start event
+(off$\rightarrow$on) of the electrolyzer. The thirteenth term
+\eqref{EQ:ELReplCost} accounts for the degradation cost of the electrolyzer
+(only in on state). The fourteenth term \eqref{EQ:FC_WarmStartupCost} accounts
+for each warm start event (standby$\rightarrow$on) of the fuel cell. The
+fifteenth term \eqref{EQ:FC_ColdStartupCost} accounts for each cold start event
+(off$\rightarrow$on) of the fuel cell. The sixteenth term \eqref{EQ:FCReplCost}
+accounts for the degradation cost of the fuel cell (only in on state).
+\section{Complete Model Formulation}
+\label{SEC:CompleteModel}
+
+The EC optimisation problem reads:
+\begin{equation}
+  \max \quad EP
+  \label{EQ:OBJ}
+\end{equation}
+subject to:
+
+\medskip
+\noindent\textbf{Flexible Demand}
+\begin{equation*}
+  \eqref{EQ:FlexDemandPos},\quad
+  \eqref{EQ:FlexDemand_UB},\quad
+  \eqref{EQ:FlexDemand_LB},\quad
+  \eqref{EQ:DailyDem},\quad
+  \eqref{EQ:InterDem},\quad
+  \eqref{EQ:FlexDemDisplace}
+\end{equation*}
+
+\noindent\textbf{Battery Energy Storage System}
+\begin{equation*}
+  \eqref{dVdCPos},\quad
+  \eqref{EQ:VPP_state_dV},\quad
+  \eqref{EQ:VPP_state_cV},\quad
+  \eqref{EQ:SOCV},\quad
+  \eqref{EQ:socVOperLimits},\quad
+  \eqref{EQ:SOCV_ini},\quad
+  \eqref{EQ:SOCV_fin}
+\end{equation*}
+
+\noindent\textbf{Electrolyzer}
+\begin{equation*}
+  \eqref{EQ:EL_nonnegativity},\quad
+  \eqref{EQ:EL_min_power},\quad
+  \eqref{EQ:EL_max_power},\quad
+  \eqref{EQ:EL_conversion},\quad
+  \eqref{EQ:EL_split},\quad
+  \eqref{EQ:EL_SB_energy_balance},\quad
+  \eqref{EQ:EL_energy_balance}
+\end{equation*}
+\begin{equation*}
+  \eqref{EQ:EL_on_ini},\quad
+  \eqref{EQ:EL_sb_ini},\quad
+  \eqref{EQ:EL_off_ini},\quad
+  \eqref{EQ:EL_one_state},\quad
+  \eqref{EQ:EL_no_sb_off1},\quad
+  \eqref{EQ:EL_no_sb_off2},\quad
+  \eqref{EQ:EL_warm_lower},\quad
+  \eqref{EQ:EL_cold_lower}
+\end{equation*}
+
+\noindent\textbf{Compressor}
+\begin{equation*}
+  \eqref{EQ:CP_nonnegativity},\quad
+  \eqref{EQ:CP_power},\quad
+  \eqref{EQ:CP_energy},\quad
+  \eqref{EQ:CP_split}
+\end{equation*}
+
+\noindent\textbf{Hydrogen Storage}
+\begin{equation*}
+  \eqref{EQ:HS_nonnegativity},\quad
+  \eqref{EQ:HS_charge},\quad
+  \eqref{EQ:HS_discharge},\quad
+  \eqref{EQ:HS_dynamics},\quad
+  \eqref{EQ:LOHperLimits},\quad
+  \eqref{EQ:HS_initial},\quad
+  \eqref{EQ:HS_final},\quad
+  \eqref{EQ:HS_split}
+\end{equation*}
+
+\noindent\textbf{Fuel Cell}
+\begin{equation*}
+  \eqref{EQ:FC_nonnegativity},\quad
+  \eqref{EQ:FC_min_power},\quad
+  \eqref{EQ:FC_max_power},\quad
+  \eqref{EQ:FC_conversion},\quad
+  \eqref{EQ:FC_SB_energy_balance}
+\end{equation*}
+\begin{equation*}
+  \eqref{EQ:FC_on_ini},\quad
+  \eqref{EQ:FC_sb_ini},\quad
+  \eqref{EQ:FC_off_ini},\quad
+  \eqref{EQ:FC_one_state},\quad
+  \eqref{EQ:FC_no_sb_off1},\quad
+  \eqref{EQ:FC_no_sb_off2},\quad
+  \eqref{EQ:FC_warm_lower},\quad
+  \eqref{EQ:FC_cold_lower}
+\end{equation*}
+
+\noindent\textbf{Hydrogen Demand and Sales}
+\begin{equation*}
+  \eqref{EQ:H2_demand_balance},\quad
+  \eqref{EQ:H2_sold_nosell},\quad
+  \eqref{EQ:H2_direct_switch_EL},\quad
+  \eqref{EQ:H2_direct_switch_CP}
+\end{equation*}
+
+\noindent\textbf{Day-Ahead Market}
+\begin{equation*}
+  \eqref{EQ:DAVarDef},\quad
+  \eqref{EQ:DA_sell_bid_LB},\quad
+  \eqref{EQ:DA_buy_bid_LB},\quad
+  \eqref{EQ:DA_buy_or_sell},\quad
+  \eqref{EQ:DA_bid_mono_1},\quad
+  \eqref{EQ:DA_bid_mono_2}
+\end{equation*}
+
+\noindent\textbf{Reserve Market}
+\begin{equation*}
+  \eqref{EQ:RVarDef},\quad
+  \eqref{EQ:RUcomp},\quad
+  \eqref{EQ:RDcomp}
+\end{equation*}
+\begin{equation*}
+  \eqref{EQ:FlexDemand_UB},\quad
+  \eqref{EQ:FlexDemand_LB},\quad
+  \eqref{EQ:FlexDemP_DReserve},\quad
+  \eqref{EQ:FlexDemP_UReserve}
+\end{equation*}
+\begin{equation*}
+  \eqref{EQ:VPP_RU2s},\quad
+  \eqref{EQ:VPP_RD2s},\quad
+  \eqref{EQ:VPP_RU_SOCV},\quad
+  \eqref{EQ:VPP_RD_SOCV}
+\end{equation*}
+\begin{equation*}
+  \eqref{EQ:RM_EL_RU},\quad
+  \eqref{EQ:RM_EL_RD},\quad
+  \eqref{EQ:RM_EL_RD_LOH},\quad
+  \eqref{EQ:RM_EL_RU_LOH}
+\end{equation*}
+\begin{equation*}
+  \eqref{EQ:RM_FC_RU},\quad
+  \eqref{EQ:RM_FC_RD},\quad
+  \eqref{EQ:RM_FC_RU_LOH},\quad
+  \eqref{EQ:RM_FC_RD_LOH}
+\end{equation*}
+
+\noindent\textbf{Intraday Markets}
+\begin{equation*}
+  \eqref{EQ:DM_IM_1},\quad
+  \eqref{EQ:IM_bounds_3-4}
+\end{equation*}
+
+\noindent\textbf{System Imbalances}
+\begin{equation*}
+  \eqref{EQ:IBVarDef},\quad
+  \eqref{EQ:IBDef},\quad
+  \eqref{EQ:VPP_IB_MAX},\quad
+  \eqref{EQ:VPP_IB_MIN}
+\end{equation*}
+
+\noindent\textbf{Nonanticipativity Constraints}
+\begin{equation*}
+  \eqref{EQ:NAC_DM_RM},\quad
+  \eqref{EQ:NAC_IM},\quad
+  \eqref{EQ:NAC_pPIB},\quad
+  \eqref{EQ:NAC_FD},\quad
+  \eqref{EQ:NAC_ops}
+\end{equation*}
+
+%–––––––––––––––––––––––––––––––––––––––––––––––––––
+\section{Summary of Stages}
+\label{SEC:StageSummary}
+
+\begin{notation}
+For $k = 1,\ldots,24$, the set $\mathcal{X}_k$ collects all operational decision
+variables at hour $k$:
+\[
+\mathcal{X}_k \;=\;
+\bigl\{
+  fd_{k,\omega},\; afd^{\pm}_{k,\omega},\;
+  c_{k,\omega},\; d_{k,\omega},\; id_{k,\omega},\; \soc_{k,\omega},\;
+  e^{EL}_{k,\omega},\; e^{EL,on}_{k,\omega},\; e^{EL,sb}_{k,\omega},\;
+  h^{EL}_{k,\omega},\; h^{dir,EL}_{k,\omega},\; h^{comp,EL}_{k,\omega},
+\]
+\[
+  i^{EL,on}_{k,\omega},\; i^{EL,sb}_{k,\omega},\; i^{EL,off}_{k,\omega},\;
+  i^{EL,warm}_{k,\omega},\; i^{EL,cold}_{k,\omega},\;
+  e^{CP}_{k,\omega},\; h^{dir,CP}_{k,\omega},\; h^{c,HS}_{k,\omega},\;
+  \text{LoH}_{k,\omega},\; h^{d,HS}_{k,\omega},\; h^{dir,HS}_{k,\omega},\; i^{HS}_{k,\omega},
+\]
+\[
+  h^{FC}_{k,\omega},\;
+  e^{FC,on}_{k,\omega},\; e^{FC,sb}_{k,\omega},\;
+  i^{FC,on}_{k,\omega},\; i^{FC,sb}_{k,\omega},\; i^{FC,off}_{k,\omega},\;
+  i^{FC,warm}_{k,\omega},\; i^{FC,cold}_{k,\omega},\;
+  h^{sold}_{k,\omega}
+\bigr\}.
+\]
+\end{notation}
+\begin{notation}
+The set $\mathcal{R}$ collects all reserve decision variables:
+\begin{align*}
+\mathcal{R} = \Big\{\,
+  r^{U}_{k,\omega},\; r^{U,B}_{k,\omega},\; r^{U,FD}_{k,\omega},\;
+  r^{U,EL}_{k,\omega},\; r^{U,FC}_{k,\omega},\;
+  r^{D}_{k,\omega},\; r^{D,B}_{k,\omega},\; r^{D,FD}_{k,\omega},\;
+  r^{D,EL}_{k,\omega},\; r^{D,FC}_{k,\omega}
+\,\Big\}
+\quad \forall\,k\in\mathcal{T},\; \forall\,\omega\in\Omega.
+\end{align*}
+\end{notation}
+\begin{longtable}{c p{5.5cm} p{4.2cm} p{3.8cm}}
+\caption[]{Summary of stages, decision variables, random-variable observations
+and recourse variables (continued).}\\
+\toprule
+\textbf{Stage} & \textbf{Decision Variables} & \textbf{Observations}
+              & \textbf{Recourse Variables} \\
+\midrule
+\endfirsthead
+\caption[]{Summary of stages, decision variables, random-variable observations
+and recourse variables (continued).}\\
+\toprule
+\textbf{Stage} & \textbf{Decision Variables} & \textbf{Observations}
+              & \textbf{Recourse Variables} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{4}{r}{\emph{Continued on next page}}\\
+\endfoot
+\bottomrule
+\endlastfoot
+
+1
+  & ---
+  & $\lambda^D \in \mathbb{R}^{24}$
+  & $e^{DA+}_{t,\omega},\; e^{DA-}_{t,\omega},\;
+     ie^{DA+}_{t,\omega},\; ie^{DA-}_{t,\omega}$ \\
+
+2
+  & $\mathcal{R}$
+  & $\lambda^R \in \mathbb{R}^{24}$
+  & --- \\
+
+3
+  & $e^{IM}_{1,t,\omega}$
+  & $\lambda^I_1 \in \mathbb{R}^{24}$
+  & --- \\
+
+4
+  & $e^{IM}_{2,t,\omega}$
+  & $\lambda^I_2 \in \mathbb{R}^{24}$
+  & --- \\
+
+5   & $\mathcal{X}_1$
+    & $W_1,\;PV_1,\;\lambda^{IB\pm}_{1,\omega} \in \mathbb{R}$
+    & $p^{IB+}_{1,\omega},\; p^{IB-}_{1,\omega}$ \\
+
+6   & $\mathcal{X}_2$
+    & $W_2,\;PV_2,\;\lambda^{IB\pm}_{2,\omega} \in \mathbb{R}$
+    & $p^{IB+}_{2,\omega},\; p^{IB-}_{2,\omega}$ \\
+
+7   & $\mathcal{X}_3$
+    & $W_3,\;PV_3,\;\lambda^{IB\pm}_{3,\omega} \in \mathbb{R}$
+    & $p^{IB+}_{3,\omega},\; p^{IB-}_{3,\omega}$ \\
+
+8   & $\mathcal{X}_4$
+    & $W_4,\;PV_4,\;\lambda^{IB\pm}_{4,\omega} \in \mathbb{R}$
+    & $p^{IB+}_{4,\omega},\; p^{IB-}_{4,\omega}$ \\
+
+9   & $\mathcal{X}_5$
+    & $W_5,\;PV_5,\;\lambda^{IB\pm}_{5,\omega} \in \mathbb{R}$
+    & $p^{IB+}_{5,\omega},\; p^{IB-}_{5,\omega}$ \\
+
+10  & $\mathcal{X}_6$
+    & $W_6,\;PV_6,\;\lambda^{IB\pm}_{6,\omega} \in \mathbb{R}$
+    & $p^{IB+}_{6,\omega},\; p^{IB-}_{6,\omega}$ \\
+
+11  & $\mathcal{X}_7$
+    & $W_7,\;PV_7,\;\lambda^{IB\pm}_{7,\omega} \in \mathbb{R}$
+    & $p^{IB+}_{7,\omega},\; p^{IB-}_{7,\omega}$ \\
+
+12  & $\mathcal{X}_8$
+    & $W_8,\;PV_8,\;\lambda^{IB\pm}_{8,\omega} \in \mathbb{R}$
+    & $p^{IB+}_{8,\omega},\; p^{IB-}_{8,\omega}$ \\
+
+13  & $\mathcal{X}_9$
+    & $W_9,\;PV_9,\;\lambda^{IB\pm}_{9,\omega} \in \mathbb{R}$
+    & $p^{IB+}_{9,\omega},\; p^{IB-}_{9,\omega}$ \\
+
+14  & $\mathcal{X}_{10}$
+    & $W_{10},\;PV_{10},\;\lambda^{IB\pm}_{10,\omega} \in \mathbb{R}$
+    & $p^{IB+}_{10,\omega},\; p^{IB-}_{10,\omega}$ \\
+
+15
+  & $e^{IM}_{3,t,\omega}$
+  & $\lambda^I_3 \in \mathbb{R}^{12}$
+  & --- \\
+
+16  & $\mathcal{X}_{11}$
+    & $W_{11},\;PV_{11},\;\lambda^{IB\pm}_{11,\omega} \in \mathbb{R}$
+    & $p^{IB+}_{11,\omega},\; p^{IB-}_{11,\omega}$ \\
+
+17  & $\mathcal{X}_{12}$
+    & $W_{12},\;PV_{12},\;\lambda^{IB\pm}_{12,\omega} \in \mathbb{R}$
+    & $p^{IB+}_{12,\omega},\; p^{IB-}_{12,\omega}$ \\
+
+18  & $\mathcal{X}_{13}$
+    & $W_{13},\;PV_{13},\;\lambda^{IB\pm}_{13,\omega} \in \mathbb{R}$
+    & $p^{IB+}_{13,\omega},\; p^{IB-}_{13,\omega}$ \\
+
+19  & $\mathcal{X}_{14}$
+    & $W_{14},\;PV_{14},\;\lambda^{IB\pm}_{14,\omega} \in \mathbb{R}$
+    & $p^{IB+}_{14,\omega},\; p^{IB-}_{14,\omega}$ \\
+
+20  & $\mathcal{X}_{15}$
+    & $W_{15},\;PV_{15},\;\lambda^{IB\pm}_{15,\omega} \in \mathbb{R}$
+    & $p^{IB+}_{15,\omega},\; p^{IB-}_{15,\omega}$ \\
+
+21  & $\mathcal{X}_{16}$
+    & $W_{16},\;PV_{16},\;\lambda^{IB\pm}_{16,\omega} \in \mathbb{R}$
+    & $p^{IB+}_{16,\omega},\; p^{IB-}_{16,\omega}$ \\
+
+22  & $\mathcal{X}_{17}$
+    & $W_{17},\;PV_{17},\;\lambda^{IB\pm}_{17,\omega} \in \mathbb{R}$
+    & $p^{IB+}_{17,\omega},\; p^{IB-}_{17,\omega}$ \\
+
+23  & $\mathcal{X}_{18}$
+    & $W_{18},\;PV_{18},\;\lambda^{IB\pm}_{18,\omega} \in \mathbb{R}$
+    & $p^{IB+}_{18,\omega},\; p^{IB-}_{18,\omega}$ \\
+
+24  & $\mathcal{X}_{19}$
+    & $W_{19},\;PV_{19},\;\lambda^{IB\pm}_{19,\omega} \in \mathbb{R}$
+    & $p^{IB+}_{19,\omega},\; p^{IB-}_{19,\omega}$ \\
+
+25  & $\mathcal{X}_{20}$
+    & $W_{20},\;PV_{20},\;\lambda^{IB\pm}_{20,\omega} \in \mathbb{R}$
+    & $p^{IB+}_{20,\omega},\; p^{IB-}_{20,\omega}$ \\
+
+26  & $\mathcal{X}_{21}$
+    & $W_{21},\;PV_{21},\;\lambda^{IB\pm}_{21,\omega} \in \mathbb{R}$
+    & $p^{IB+}_{21,\omega},\; p^{IB-}_{21,\omega}$ \\
+
+27  & $\mathcal{X}_{22}$
+    & $W_{22},\;PV_{22},\;\lambda^{IB\pm}_{22,\omega} \in \mathbb{R}$
+    & $p^{IB+}_{22,\omega},\; p^{IB-}_{22,\omega}$ \\
+
+28  & $\mathcal{X}_{23}$
+    & $W_{23},\;PV_{23},\;\lambda^{IB\pm}_{23,\omega} \in \mathbb{R}$
+    & $p^{IB+}_{23,\omega},\; p^{IB-}_{23,\omega}$ \\
+
+29  & $\mathcal{X}_{24}$
+    & $W_{24},\;PV_{24},\;\lambda^{IB\pm}_{24,\omega} \in \mathbb{R}$
+    & $p^{IB+}_{24,\omega},\; p^{IB-}_{24,\omega}$ \\
+
+\end{longtable}
+
+
+
+\printbibliography
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+\end{document}
