@@ -21,6 +21,7 @@ from pyomo.environ import DataPortal, value, SolverFactory
 from pathlib import Path
 import importlib
 import yaml
+import json
 # ---------------------------------------------------------------------
 # Read in configuration from 
 # ---------------------------------------------------------------------
@@ -117,7 +118,7 @@ for sim in SIMS:
     os.makedirs(os.path.join(project_root, pathmarketres), exist_ok=True)
 
     # let scenfile := famscen&"-"&sim&".dat";
-    scenfile = f"{famscen}-{sim}.dat"
+    scenfile = f"{famscen}-{sim}.json"
     print(f"scenfile path = {pathscen}{scenfile}")
     print(f"pathres        = {pathres}")
 
@@ -139,7 +140,29 @@ for sim in SIMS:
         scenario_data.load(filename=os.path.join(project_root, "data", hydrogen_datfile), model=abstract_model)
 
     # Then load scenario & demand data
-    scenario_data.load(filename=os.path.join(project_root, pathscen, scenfile), model=abstract_model)
+    #scenario_data.load(filename=os.path.join(project_root, pathscen, scenfile), model=abstract_model)
+    with open(os.path.join(project_root, pathscen, scenfile)) as f:
+        scen = json.load(f)
+    scenario_data["predictedvalue"] = {i+1: v for i, v in enumerate(scen["predictedvalue"])}
+    scenario_data["observedvalue"]  = {i+1: v for i, v in enumerate(scen["observedvalue"])} if scen["observedvalue"] else {}
+    scenario_data["meanscenarios"]  = {i+1: v for i, v in enumerate(scen["meanscenarios"])}
+    scenario_data["scenarios"] = {
+        (s+1, t+1): scen["scenarios"][s][t]
+        for s in range(len(scen["scenarios"]))
+        for t in range(len(scen["scenarios"][s]))
+    }
+    scenario_data["tree"] = {
+        (entry["key"][0], entry["key"][1]): entry["value"]
+        for entry in scen["tree"]
+    }
+    scenario_data["nS"]  = {None: scen["nS"]}   
+    scenario_data["nSG"] = {None: scen["nSG"]} 
+    scenario_data["nRVSG"] = {row[0]: row[1] for row in scen["nRVSG"]}
+
+
+
+
+
     scenario_data.load(filename=os.path.join(project_root, pathdem,  demfile),  model=abstract_model)
     if include_h2:
         scenario_data.load(filename=os.path.join(project_root, pathdem_h2,  demfile_h2),  model=abstract_model)
