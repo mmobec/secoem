@@ -22,10 +22,9 @@ numscenfile: "numscen.txt"
 # Solver options
 solver:
   name: "appsi_highs"
-  MIPGap: 0.05
-  Threads: 4
-  DisplayInterval: 2
-  Presolve: 0
-  TimeLimit: 3600
-  Seed: 2
+  mip_rel_gap: 0.05
+  threads: 4
+  time_limit: 3600
+  presolve: "off"
+  random_seed: 2
   simplex_strategy: 1

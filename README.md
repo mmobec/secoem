@@ -108,7 +108,7 @@ solver:
   Seed: 2
   simplex_strategy: 1
 
-By default, HiGHS is selected as the solver. For faster runtimes, commercial solvers such as Gurobi can be used.
+By default, HiGHS is selected as the solver. For faster runtimes, commercial solvers such as Gurobi can be used. When changing the solver, the solver settings may need to be adapted to the new solver.
 ```
 
 ### Key parameters to adjust:
