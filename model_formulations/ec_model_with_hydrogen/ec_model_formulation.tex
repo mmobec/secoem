@@ -32,7 +32,7 @@
 
 \setlength{\parindent}{0pt}
 
-\title{EC Model Formulation Including Hydrogen Chain}
+\title{EC Model Formulation with Hydrogen Chain}
 \author{Andrea Ademollo, Albert Sol\`a Vilalta, Carlo Carcasci, F.- Javier Heredia Cervera, Jan Jettmann}
 \date{\today}
 
@@ -1446,163 +1446,23 @@ accounts for the degradation cost of the fuel cell (only in on state).
 \label{SEC:CompleteModel}
 
 The EC optimisation problem reads:
-\begin{equation}
-  \max \quad EP
-  \label{EQ:OBJ}
-\end{equation}
-subject to:
+\begin{align*}
+\notag & \text{max} & & EP \label{EQ:OBJ} \\
+\notag & \text{s.t.} & & \eqref{EQ:FlexDemandPos}, \eqref{EQ:DailyDem}, \eqref{EQ:InterDem}, \eqref{EQ:FlexDemDisplace},  & \text{Flex. Demand} \\
+\notag & & & \eqref{dVdCPos}, \eqref{EQ:VPP_state_dV}, \eqref{EQ:VPP_state_cV}, \eqref{EQ:SOCV}, \eqref{EQ:socVOperLimits}, \eqref{EQ:SOCV_ini}, \eqref{EQ:SOCV_fin}, & \text{BESS}    \\
+\notag & & & \eqref{EQ:EL_nonnegativity}, \eqref{EQ:EL_min_power}, \eqref{EQ:EL_max_power}, \eqref{EQ:EL_conversion}, \eqref{EQ:EL_split}, \eqref{EQ:EL_SB_energy_balance}, \eqref{EQ:EL_energy_balance}, \eqref{EQ:EL_on_ini}, \eqref{EQ:EL_sb_ini}, \eqref{EQ:EL_off_ini}, \eqref{EQ:EL_one_state}, \eqref{EQ:EL_no_sb_off1}, \eqref{EQ:EL_no_sb_off2}, \eqref{EQ:EL_warm_lower}, \eqref{EQ:EL_cold_lower}, & \text{Electrolyzer}  \\
+\notag & & & \eqref{EQ:CP_nonnegativity}, \eqref{EQ:CP_power}, \eqref{EQ:CP_energy}, \eqref{EQ:CP_split}, & \text{Compressor}  \\
+\notag & & & \eqref{EQ:HS_nonnegativity}, \eqref{EQ:HS_charge}, \eqref{EQ:HS_discharge}, \eqref{EQ:HS_dynamics}, \eqref{EQ:LOHperLimits}, \eqref{EQ:HS_initial}, \eqref{EQ:HS_final}, \eqref{EQ:HS_split}, & \text{H}_2 \text{ Storage} \\
+\notag & & & \eqref{EQ:FC_nonnegativity}, \eqref{EQ:FC_min_power}, \eqref{EQ:FC_max_power}, \eqref{EQ:FC_conversion}, \eqref{EQ:FC_SB_energy_balance}, \eqref{EQ:FC_on_ini}, \eqref{EQ:FC_sb_ini}, \eqref{EQ:FC_off_ini}, \eqref{EQ:FC_one_state}, \eqref{EQ:FC_no_sb_off1}, \eqref{EQ:FC_no_sb_off2}, \eqref{EQ:FC_warm_lower}, \eqref{EQ:FC_cold_lower}, & \text{Fuel Cell} \\
+\notag & & & \eqref{EQ:H2_demand_balance}, \eqref{EQ:H2_sold_nosell}, \eqref{EQ:H2_direct_switch_EL}, \eqref{EQ:H2_direct_switch_CP}, & \text{H}_2 \text{ Demand} \\
+\notag & & & \eqref{EQ:DAVarDef}, \eqref{EQ:DA_sell_bid_LB}, \eqref{EQ:DA_buy_bid_LB}, \eqref{EQ:DA_buy_or_sell}, \eqref{EQ:DA_bid_mono_1}, \eqref{EQ:DA_bid_mono_2}, & \text{DA Market} \\
+\notag & & & \eqref{EQ:RVarDef}, \eqref{EQ:RUcomp}, \eqref{EQ:RDcomp}, \eqref{EQ:FlexDemand_UB}, \eqref{EQ:FlexDemand_LB}, \eqref{EQ:FlexDemP_DReserve}, \eqref{EQ:FlexDemP_UReserve}, \eqref{EQ:VPP_RU2s}, \eqref{EQ:VPP_RD2s}, \eqref{EQ:VPP_RU_SOCV}, \eqref{EQ:VPP_RD_SOCV}, & \text{RM Market I} \\
+\notag & & & \eqref{EQ:RM_EL_RU}, \eqref{EQ:RM_EL_RD}, \eqref{EQ:RM_EL_RD_LOH}, \eqref{EQ:RM_EL_RU_LOH}, \eqref{EQ:RM_FC_RU}, \eqref{EQ:RM_FC_RD}, \eqref{EQ:RM_FC_RU_LOH}, \eqref{EQ:RM_FC_RD_LOH}, & \text{RM Market II} \\
+\notag & & & \eqref{EQ:DM_IM_1}, \eqref{EQ:IM_bounds_3-4}, & \text{IM} \text{ Market} \\
+\notag & & & \eqref{EQ:IBVarDef}, \eqref{EQ:IBDef}, \eqref{EQ:VPP_IB_MAX}, \eqref{EQ:VPP_IB_MIN}, & \text{ Imbalances} \\
+\notag & & & \eqref{EQ:NAC_DM_RM}, \eqref{EQ:NAC_IM}, \eqref{EQ:NAC_pPIB}, \eqref{EQ:NAC_FD}, \eqref{EQ:NAC_ops}. & \text{ NAC} \\
+\end{align*}
 
-\medskip
-\noindent\textbf{Flexible Demand}
-\begin{equation*}
-  \eqref{EQ:FlexDemandPos},\quad
-  \eqref{EQ:DailyDem},\quad
-  \eqref{EQ:InterDem},\quad
-  \eqref{EQ:FlexDemDisplace}
-\end{equation*}
-
-\noindent\textbf{Battery Energy Storage System}
-\begin{equation*}
-  \eqref{dVdCPos},\quad
-  \eqref{EQ:VPP_state_dV},\quad
-  \eqref{EQ:VPP_state_cV},\quad
-  \eqref{EQ:SOCV},\quad
-  \eqref{EQ:socVOperLimits},\quad
-  \eqref{EQ:SOCV_ini},\quad
-  \eqref{EQ:SOCV_fin}
-\end{equation*}
-
-\noindent\textbf{Electrolyzer}
-\begin{equation*}
-  \eqref{EQ:EL_nonnegativity},\quad
-  \eqref{EQ:EL_min_power},\quad
-  \eqref{EQ:EL_max_power},\quad
-  \eqref{EQ:EL_conversion},\quad
-  \eqref{EQ:EL_split},\quad
-  \eqref{EQ:EL_SB_energy_balance},\quad
-  \eqref{EQ:EL_energy_balance}
-\end{equation*}
-\begin{equation*}
-  \eqref{EQ:EL_on_ini},\quad
-  \eqref{EQ:EL_sb_ini},\quad
-  \eqref{EQ:EL_off_ini},\quad
-  \eqref{EQ:EL_one_state},\quad
-  \eqref{EQ:EL_no_sb_off1},\quad
-  \eqref{EQ:EL_no_sb_off2},\quad
-  \eqref{EQ:EL_warm_lower},\quad
-  \eqref{EQ:EL_cold_lower}
-\end{equation*}
-
-\noindent\textbf{Compressor}
-\begin{equation*}
-  \eqref{EQ:CP_nonnegativity},\quad
-  \eqref{EQ:CP_power},\quad
-  \eqref{EQ:CP_energy},\quad
-  \eqref{EQ:CP_split}
-\end{equation*}
-
-\noindent\textbf{Hydrogen Storage}
-\begin{equation*}
-  \eqref{EQ:HS_nonnegativity},\quad
-  \eqref{EQ:HS_charge},\quad
-  \eqref{EQ:HS_discharge},\quad
-  \eqref{EQ:HS_dynamics},\quad
-  \eqref{EQ:LOHperLimits},\quad
-  \eqref{EQ:HS_initial},\quad
-  \eqref{EQ:HS_final},\quad
-  \eqref{EQ:HS_split}
-\end{equation*}
-
-\noindent\textbf{Fuel Cell}
-\begin{equation*}
-  \eqref{EQ:FC_nonnegativity},\quad
-  \eqref{EQ:FC_min_power},\quad
-  \eqref{EQ:FC_max_power},\quad
-  \eqref{EQ:FC_conversion},\quad
-  \eqref{EQ:FC_SB_energy_balance}
-\end{equation*}
-\begin{equation*}
-  \eqref{EQ:FC_on_ini},\quad
-  \eqref{EQ:FC_sb_ini},\quad
-  \eqref{EQ:FC_off_ini},\quad
-  \eqref{EQ:FC_one_state},\quad
-  \eqref{EQ:FC_no_sb_off1},\quad
-  \eqref{EQ:FC_no_sb_off2},\quad
-  \eqref{EQ:FC_warm_lower},\quad
-  \eqref{EQ:FC_cold_lower}
-\end{equation*}
-
-\noindent\textbf{Hydrogen Demand and Sales}
-\begin{equation*}
-  \eqref{EQ:H2_demand_balance},\quad
-  \eqref{EQ:H2_sold_nosell},\quad
-  \eqref{EQ:H2_direct_switch_EL},\quad
-  \eqref{EQ:H2_direct_switch_CP}
-\end{equation*}
-
-\noindent\textbf{Day-Ahead Market}
-\begin{equation*}
-  \eqref{EQ:DAVarDef},\quad
-  \eqref{EQ:DA_sell_bid_LB},\quad
-  \eqref{EQ:DA_buy_bid_LB},\quad
-  \eqref{EQ:DA_buy_or_sell},\quad
-  \eqref{EQ:DA_bid_mono_1},\quad
-  \eqref{EQ:DA_bid_mono_2}
-\end{equation*}
-
-\noindent\textbf{Reserve Market}
-\begin{equation*}
-  \eqref{EQ:RVarDef},\quad
-  \eqref{EQ:RUcomp},\quad
-  \eqref{EQ:RDcomp}
-\end{equation*}
-\begin{equation*}
-  \eqref{EQ:FlexDemand_UB},\quad
-  \eqref{EQ:FlexDemand_LB},\quad
-  \eqref{EQ:FlexDemP_DReserve},\quad
-  \eqref{EQ:FlexDemP_UReserve}
-\end{equation*}
-\begin{equation*}
-  \eqref{EQ:VPP_RU2s},\quad
-  \eqref{EQ:VPP_RD2s},\quad
-  \eqref{EQ:VPP_RU_SOCV},\quad
-  \eqref{EQ:VPP_RD_SOCV}
-\end{equation*}
-\begin{equation*}
-  \eqref{EQ:RM_EL_RU},\quad
-  \eqref{EQ:RM_EL_RD},\quad
-  \eqref{EQ:RM_EL_RD_LOH},\quad
-  \eqref{EQ:RM_EL_RU_LOH}
-\end{equation*}
-\begin{equation*}
-  \eqref{EQ:RM_FC_RU},\quad
-  \eqref{EQ:RM_FC_RD},\quad
-  \eqref{EQ:RM_FC_RU_LOH},\quad
-  \eqref{EQ:RM_FC_RD_LOH}
-\end{equation*}
-
-\noindent\textbf{Intraday Markets}
-\begin{equation*}
-  \eqref{EQ:DM_IM_1},\quad
-  \eqref{EQ:IM_bounds_3-4}
-\end{equation*}
-
-\noindent\textbf{System Imbalances}
-\begin{equation*}
-  \eqref{EQ:IBVarDef},\quad
-  \eqref{EQ:IBDef},\quad
-  \eqref{EQ:VPP_IB_MAX},\quad
-  \eqref{EQ:VPP_IB_MIN}
-\end{equation*}
-
-\noindent\textbf{Nonanticipativity Constraints}
-\begin{equation*}
-  \eqref{EQ:NAC_DM_RM},\quad
-  \eqref{EQ:NAC_IM},\quad
-  \eqref{EQ:NAC_pPIB},\quad
-  \eqref{EQ:NAC_FD},\quad
-  \eqref{EQ:NAC_ops}
-\end{equation*}
 
 %–––––––––––––––––––––––––––––––––––––––––––––––––––
 \section{Summary of Stages}
