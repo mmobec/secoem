@@ -20,6 +20,7 @@ authors = [
 dependencies = [
     "pyomo>=6.10",
     "PyYAML>=6.0",
+    "highspy>=1.5.0"
 ]
 
 [project.optional-dependencies]

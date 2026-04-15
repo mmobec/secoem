@@ -657,9 +657,10 @@ for sim in SIMS:
 
     # SOLVER OPTIONS
     solver_cfg = cfg.get("solver", {})
-    solver = SolverFactory(solver_cfg.pop("name", "gurobi"))
+    solver = SolverFactory(solver_cfg["name"])
     for key, val in solver_cfg.items():
-        solver.options[key] = val
+        if key != "name":
+            solver.options[key] = val
 
 
     print("Solving the optimization problem...")
