@@ -128,6 +128,20 @@ The scenario files in Pyomo format must be placed in the `/scenarios` directory.
 
 The naming format is important: scenario files should follow the format `famscen-scenario_number.dat`. For example, for the family of scenarios `FTC_10_2024` (`famscen: FTC_10_2024`), the scenario files should be named `FTC_10_2024-001.dat`, `FTC_10_2024-002.dat`, etc.
 
+#### Scenario File Structure
+
+Each scenario file is a Pyomo-format `.dat` file encoding the stochastic scenario tree for one simulation day. It must define the following:
+
+| Parameter / Set | Description |
+|----------------|-------------|
+| `param nS` | Number of scenarios. A scenario is a complete path from the root node to a leaf node  |
+| `param nSG` | Number of stages |
+| `param nRVSG` | Number of random variables at each stage |
+| `param ScenF` | Forecasted scenarios |
+| `param ScenO` | Observed scenarios |
+| `param Scen0 (tr)` | Scenario tree. A `nS × N` matrix where each row is a scenario and each column values of one random variable |
+| `param Prob0` | Probability of every scenario (must add up to 1) |
+| `set c[sg, s]` | Scenarios in cluster `s` of stage `sg`. Lists all scenarios in the cluster |
 ---
 
 ## Running the Models
