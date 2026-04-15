@@ -33,7 +33,7 @@
 \setlength{\parindent}{0pt}
 
 \title{EC Model Formulation Including Hydrogen Chain}
-\author{Andrea Ademollo, Albert Sol\`a Vilalta, Carlo Carcasci, F.- Javier Heredia Cervera}
+\author{Andrea Ademollo, Albert Sol\`a Vilalta, Carlo Carcasci, F.- Javier Heredia Cervera, Jan Jettmann}
 \date{\today}
 
 
@@ -298,7 +298,7 @@ In this setting, depending on the relation between electrolyser's hydrogen press
 
 Hydrogen exported to the market is delivered at \(Pr^{\rm DEM}_{\rm H2}\) and obeys the same pressure-logic constraints, ensuring consistent handling of flows.
 
-\subsubsection{Electrolyzer}
+\subsection{Electrolyzer}
 \label{SEC:Electrolyzer}
 
 To model the electrolyzer operation with three distinct states—online (production), standby, and off—the structure proposed by \cite{johnsen2025} is adopted as a foundation, particularly in how these states are linked to reserve capacity bidding in electricity markets. The constraints on transitions between states (specifically, disallowing transitions from off to standby and vice versa), along with the modeling of cold and warm startup costs, are incorporated based on the approach detailed by \cite{Zheng2022}, which emphasizes the dynamic behavior of electrolyzer start-up processes. 
@@ -342,6 +342,7 @@ Furthermore, the representation of electrolyzer degradation follows the methodol
         Exactly one among these three initial states must be assigned 1. \\
     $\alpha^{EL}$ (\verb|alpha_EL|)
       & degradation-cost coefficient of electrolyzer [\euro{}/h]. \\
+      \\
 \end{tabularx}
 
 \noindent
@@ -496,7 +497,7 @@ A cold start (off→on) is flagged when both off at $t-1$ and on at $t$ occur
 \end{equation}
 
 
-\subsubsection{Compressor}
+\subsection{Compressor}
 \label{SEC:Compressor}
 
 \noindent
@@ -541,7 +542,7 @@ The hydrogen processed by the compressor is split into a fraction directly satis
 \end{equation}
 
 
-\subsubsection{Hydrogen Storage}
+\subsection{Hydrogen Storage}
 \label{SEC:StorageTank}
 
 \noindent
@@ -561,6 +562,7 @@ The hydrogen processed by the compressor is split into a fraction directly satis
       & initial level of hydrogen in tank. Unitless, values in [0,1]. \\
     $\LOH_T$ (\verb|LOH_fin|)
       & final level of hydrogen in tank. Unitless, values in [0,1]. \\
+     \\
 \end{tabularx}
 
 \begin{tabularx}{\textwidth}{@{}l X@{}}
@@ -622,7 +624,7 @@ The hydrogen discharged from the tank is split between the fraction used directl
 \end{equation}
 
 
-\subsubsection{Fuel Cell}
+\subsection{Fuel Cell}
 \label{SEC:FuelCell}
 
 To model the fuel cell operation we adopt the same tri‐state (on, standby, off) structure of the electrolyzer, as proposed in \cite{You2016} and \cite{Shehzad2020}, including the prohibition of direct transitions between off and standby. Startup costs are represented in energetic terms following \cite{You2016}, assigning the same energy‐based startup value to both electrolyzer and fuel cell. When converted to monetary terms via the electricity price, these align with the economic startup costs reported in \cite{Zheng2022}. Degradation costs follow the methodology of \cite{Matute2021}, but are scaled higher to reflect the greater CAPEX of fuel cells. \\ A key distinction from BESS is that, unlike batteries, the hydrogen conversion chain permits the electrolyzer and fuel cell to operate simultaneously—and even to provide reserve concurrently—as highlighted in \cite{Shehzad2020}.
@@ -656,6 +658,7 @@ To model the fuel cell operation we adopt the same tri‐state (on, standby, off
         Exactly one among these three initial states must be assigned 1. \\
     $\alpha^{FC}$ (\verb|alpha_FC|)
       & degradation-cost coefficient of fuel cell [\euro{}/h]. \\
+      \\
 \end{tabularx}
 
 \noindent
@@ -779,13 +782,13 @@ A cold start (off→on) is flagged when both off at $t-1$ and on at $t$ occur
 \end{equation}
 
 
-\subsubsection{Hydrogen Demand and Hydrogen Sold}
+\subsection{Hydrogen Demand and Hydrogen Sold}
 \label{SEC:HydrogenDemand}
 
-We assume that the hydrogen has to be delivered at a pressure of \(Pr^{\rm DEM}_{\rm H2}\) for both refueling station demand and sales. The routing logic that determines which of the three pathways (\textit{EL}, \textit{CP}, \textit{HS}) is admissible to deliver hydrogen at each time step has been detailed in \ref{SEC:HydrogenChain}.
+We assume that the hydrogen has to be delivered at a pressure of \(Pr^{\rm DEM}_{\rm H2}\) for both refueling station demand and sales. The routing logic that determines which of the three pathways (\textit{EL}, \textit{CP}, \textit{HS}) is admissible to deliver hydrogen at each time step has been detailed in Section \ref{SEC:HydrogenChain}.
 
 \noindent
-\begin{tabularx}{\textwidth}{@{}l X@{}}
+\begin{tabularx}{\textwidth}{@{}l X@{}}  
   \textbf{Parameters:} & \\
   $h^{\rm DEM}_{t}$ (\verb|HDEM|)
     & hydrogen demand at time~$t\in\mathcal{T}$ [kgH$_2$]. \\
@@ -817,7 +820,7 @@ The hydrogen produced must satisfy the refueling station demand and surplus hydr
   \quad\forall\,t\in\mathcal{T},\ \omega\in\Omega\,.
 \end{equation}
 
-\subsubsection{Model Configuration}
+\subsection{Model Configuration}
 \label{SEC:ModelConfiguration}
 
 To facilitate the implementation of the different HRS configurations we introduce two flags. $\phi$ denotes the export flag and $\chi$ denotes the pressure case flag.
@@ -960,14 +963,14 @@ We model the participation of the EC in the reserve market with a unique price-a
 %To model reserve bids, we use recourse variables only because price-accepting reserve bids do not seem to have a clear motivation. From these recourse variables, we build buying and selling bid curves a posteriori, from the results obtained at each scenario. The role of first stage variables is represented in the reserve by the binary variable indicating if the EC submitted a bid to the day-ahead market. Recall that  MIBEL market rules establish that a market participant needs to have an accepted day-ahead market bid to participate in the reserve market.
 
 \begin{tabularx}{\textwidth}{l l}
-    \textbf{Sets:} \\
+%    \textbf{Sets:} \\
 %		$\mathcal{SSR}$ (\verb|Ssr|) & $\{(t, l, j) \in \mathcal{T} \times \Omega \times \Omega \hspace{2mm} | \hspace{2mm} l \neq j, \hspace{2mm} \lambda^R_{t, l} \leq \lambda^R_{t, j}, \hspace{2mm} \exists k \in \Omega \hspace{2mm} \text{s.t.} \hspace{2mm} \# \mathcal{C}_{1, k} > 1 \hspace{2mm} \text{and} \hspace{2mm} l, j \in \mathcal{C}_{1, k} \}$.  \\
 %	& Rather technical. Used to ensure monotonicity of reserve bids \\
 %	& w.r.t. reserve price realisations. \\  
 %	& For every $t \in \mathcal{T}$ provides the scenario pairs $(l, j)$ in each DA cluster s.t. $\lambda^R_{t, l} \leq \lambda^R_{t, j}$ \\
 %	& (order is important). The use of DA clusters is due to the assumption that DA \\
 %	& prices are revealed before RM gate clousure.\\	   
-    \\
+%    \\
     \textbf{Parameters:} \\
     	$\lambda^{R}_{t, \omega}$ (\verb|lR|) & reserve market price at time $t \in \mathcal{T}$ under scenario $\omega \in \Omega$ [\euro/MWh]. \\
     	$T^R$ (\verb|TSR|) & duration of reserve response [h]. \\
@@ -1145,7 +1148,7 @@ We model the participation of the EC in intraday markets with a unique price-acc
 %To model intraday markets, we use recourse variables only. The role of first stage variables is played by the binary variables indicating whether the EC submitted a bid (buying or selling) to the day ahead market at that time.
 
 \begin{tabularx}{\textwidth}{l l}
-    \textbf{Sets:} \\
+%    \textbf{Sets:} \\
 %    	$\mathcal{SSI}$ (\verb|Ssi|) & $\{(i, t, l, j) \in \mathcal{I} \times \mathcal{T}_i \times \Omega \times \Omega \hspace{2mm} | \hspace{2mm} l \neq j, \hspace{2mm} \lambda^I_{i, t, l} \leq \lambda^I_{i, t, l}, \hspace{2mm}$ \\ 
 %	& $\exists k \in \Omega \hspace{2mm} \text{s.t.} \hspace{2mm} \# \mathcal{C}_{SG^{IM}_i - 1, k} > 1 \hspace{2mm} \text{and} \hspace{2mm} l, j \in \mathcal{C}_{1, k} \}$     \\
 %	& Rather technical. Used to ensure monotonicity of intraday market bids \\
@@ -1154,7 +1157,7 @@ We model the participation of the EC in intraday markets with a unique price-acc
 %	& cluster s.t. $\lambda^I_{i, t, l} \leq \lambda^I_{i, t, j}$ (order is important). The use of previous stage clusters is \\
 %	& due to the assumption that the parameters in that cluster are revealed \\
 %	& before IM gate clousure.\\	 
-    \\
+%    \\
     
     \textbf{Parameters:} \\
     	$\lambda^I_{i, t, \omega}$ (\verb|lI|) & intraday market $i \in \mathcal{I}$ price at time $t \in \mathcal{T}$ under scenario $\omega \in \Omega$ [\euro/MWh]. \\
@@ -1453,8 +1456,6 @@ subject to:
 \noindent\textbf{Flexible Demand}
 \begin{equation*}
   \eqref{EQ:FlexDemandPos},\quad
-  \eqref{EQ:FlexDemand_UB},\quad
-  \eqref{EQ:FlexDemand_LB},\quad
   \eqref{EQ:DailyDem},\quad
   \eqref{EQ:InterDem},\quad
   \eqref{EQ:FlexDemDisplace}
