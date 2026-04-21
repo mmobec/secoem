@@ -255,8 +255,31 @@ To run it, the user needs to change the `famscen` parameter in `codes/config.yam
 ```yaml
 famscen: "FTC_202407_202412_c92_sc100"
 ```
-
 and follow the same steps than in [Example 1](#example-1-ftc_2024_10).
+
+### Example Plots
+
+The results of running the model with the previously shown parameters are visualized to give an idea of the outputs of the model.
+
+First of all, below is a representation of the probability distribution of some of the input parameters, namely wind and PV generation, showing the different scenarios that are taken into consideration for the bid creation.
+<img width="2754" height="1432" alt="grafik" src="https://github.com/user-attachments/assets/246b62a2-5daa-4518-b400-76ea8385f423" />
+<img width="2766" height="1396" alt="grafik" src="https://github.com/user-attachments/assets/be01b93f-0826-46f7-85b2-7383129c95cd" />
+
+
+Example bid curves for the day-ahead market may look like the following. The bids are in the shape of stepwise bid curves with buying and selling curves. For each hour of each simulated day, these price-quantity bid pairs are provided by the model.
+<img width="1600" height="900" alt="DA_None_9_None(2)" src="https://github.com/user-attachments/assets/2697d928-c33e-4637-a828-02eac5063e49" />
+
+The behavior of each of the EC's components can be seen in the figure below. It shows for one scenario how the EC is going to act, showing energy flows of each component. The EC procures most of it's energy demand via the day-ahead market, and uses the intraday markets to balance. It strategically uses the fuel cell, electrolyzer and battery throughout the day. The black line shows the imbalance throughout the day, which remains close to zero.
+<img width="1423" height="601" alt="ec_barplotIM1_day_005_electrolyzer" src="https://github.com/user-attachments/assets/5b01fa67-ee5a-4773-ba10-700929a10e5d" />
+
+
+
+
+The distribution of the objective function components of the models over a 5 day simulation can be seen in the plot below. It is visible that the biggest contributers are the day-ahead, reserve and intraday markets. The EC mainly buys from the DA market to cover the demand. The revenue is primarily generated within the reserve market, as well as the intraday market. The remaining cost terms are comparatively small in magnitude.
+<img width="1093" height="450" alt="newplot" src="https://github.com/user-attachments/assets/058de777-e8c5-4d65-a229-174900f28754" />
+
+
+
 
 ---
 
