@@ -142,24 +142,33 @@ for sim in SIMS:
     # Then load scenario & demand data
     #scenario_data.load(filename=os.path.join(project_root, pathscen, scenfile), model=abstract_model)
     with open(os.path.join(project_root, pathscen, scenfile)) as f:
-        scen = json.load(f)
-    scenario_data["predictedvalue"] = {i+1: v for i, v in enumerate(scen["predictedvalue"])}
-    scenario_data["observedvalue"]  = {i+1: v for i, v in enumerate(scen["observedvalue"])} if scen["observedvalue"] else {}
-    scenario_data["meanscenarios"]  = {i+1: v for i, v in enumerate(scen["meanscenarios"])}
-    scenario_data["scenarios"] = {
-        (s+1, t+1): scen["scenarios"][s][t]
-        for s in range(len(scen["scenarios"]))
-        for t in range(len(scen["scenarios"][s]))
+        scen = json.load(f)[int(sim)-1]
+    scenario_data["ScenF"] = {i+1: v for i, v in enumerate(scen["predicted_value"])}
+    scenario_data["ScenO"]  = {i+1: v for i, v in enumerate(scen["observed_value"])} if scen["observed_value"] else {}
+    #scenario_data["Scen0"]  = {i+1: v for i, v in enumerate(scen["mean_scenarios"])}
+    scenario_data["Scen0"] = {
+        (rv, s): scen["scenarios"][s - 1][rv - 1]
+        for s in range(1, len(scen["scenarios"]) + 1)
+        for rv in range(1, len(scen["scenarios"][s - 1]) + 1)
     }
-    scenario_data["tree"] = {
-        (entry["key"][0], entry["key"][1]): entry["value"]
+
+    scenario_data["c"] = {
+        (entry["key"][0], entry["key"][1]): entry["scenario_ids"]
         for entry in scen["tree"]
     }
-    scenario_data["nS"]  = {None: scen["nS"]}   
-    scenario_data["nSG"] = {None: scen["nSG"]} 
-    scenario_data["nRVSG"] = {row[0]: row[1] for row in scen["nRVSG"]}
+    scenario_data["nS"]  = {None: scen["num_scenarios"]}   
+    scenario_data["nSG"] = {None: scen["num_stages"]} 
+    #scenario_data["nRVSG"] = {row[0]: row[1] for row in scen["nRVSG"]}
+    #scenario_data["nRVSG"] = {row["stages"][0]: len(row["columns"]) for row in scen["mapping_datasets_columns"]}
+    nrvsg = {}
+    for dataset in scen["mapping_datasets_columns"]:
+        for i in dataset["stages"]:
+            if nrvsg.get(i):
+                nrvsg[i] += 1
+            else:
+                nrvsg[i] = 1
 
-
+    scenario_data["nRVSG"] = nrvsg
 
 
 
@@ -170,7 +179,8 @@ for sim in SIMS:
     
     "Before creating the instance"
     # Some Data Preprocess needed before creating the instance because these values are used to build sets in model.py, so they must be defined before creating the instance
-    Prob0_raw = scenario_data.data().get("Prob0", {})
+    #Prob0_raw = scenario_data.data().get("Prob0", {})
+    Prob0_raw =  {i+1:scen["scenario_probabilities"][i] for i in range(scen["num_scenarios"])}    # scen["scenario_probabilities"]
     Scen0_raw = scenario_data.data().get("Scen0", {})
     ScenF_raw = scenario_data.data().get("ScenF", {})
     ScenO_raw = scenario_data.data().get("ScenO", {})
@@ -275,15 +285,15 @@ for sim in SIMS:
         sigma_pW_dict[t] = math.sqrt(variance_pW)
     # Store values in Pyomo model
     for (t, s), val in pW_dict.items():
-        instance.pW[t, s] = val
+        instance.pW[t, s] = max(val, 0)
     for (t, s), val in pPV_dict.items():
-        instance.pPV[t, s] = val
+        instance.pPV[t, s] = max(val, 0)
     for t, val in mean_pW_dict.items():
-        instance.mean_pW[t] = val
+        instance.mean_pW[t] = max(val, 0)
     for t, val in mean_pPV_dict.items():
-        instance.mean_pPV[t] = val
+        instance.mean_pPV[t] = max(val, 0)
     for t, val in sigma_pW_dict.items():
-        instance.sigma_pW[t] = val   
+        instance.sigma_pW[t] = max(val, 0)   
     
     # Compute max values for wind and solar power    
     mean_pW_avg  = sum(mean_pW_dict[t] for t in instance.T) / value(instance.nT)
@@ -687,8 +697,7 @@ for sim in SIMS:
 
     print("Solving the optimization problem...")
     start_time = time.time()
-    
-    results = solver.solve(instance, tee=True)  # Solve and print log
+    results = solver.solve(instance, tee=True)
     end_time = time.time()
     
     solve_elapsed_time = end_time - start_time  # Compute elapsed time
@@ -1190,7 +1199,11 @@ for sim in SIMS:
         for k in instance.S:
             f.write(f"{k} ")
             for s in instance.SG0:
+                if s == 1:
+                    x=1
                 for i in instance.S0:
+                    if i == 1:
+                        x=1
                     # Find the minimum representative scenario `m` in cluster `c[s, i]`
                     cluster_members = [m for m in instance.c[s, i] if m == k]
                     if cluster_members:
