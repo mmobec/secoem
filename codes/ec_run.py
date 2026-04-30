@@ -118,7 +118,7 @@ for sim in SIMS:
     os.makedirs(os.path.join(project_root, pathmarketres), exist_ok=True)
 
     # let scenfile := famscen&"-"&sim&".dat";
-    scenfile = f"{famscen}-{sim}.json"
+    scenfile = f"{famscen}.json"
     print(f"scenfile path = {pathscen}{scenfile}")
     print(f"pathres        = {pathres}")
 
@@ -147,9 +147,9 @@ for sim in SIMS:
     scenario_data["ScenO"]  = {i+1: v for i, v in enumerate(scen["observed_value"])} if scen["observed_value"] else {}
     #scenario_data["Scen0"]  = {i+1: v for i, v in enumerate(scen["mean_scenarios"])}
     scenario_data["Scen0"] = {
-        (rv, s): scen["scenarios"][s - 1][rv - 1]
-        for s in range(1, len(scen["scenarios"]) + 1)
-        for rv in range(1, len(scen["scenarios"][s - 1]) + 1)
+        (rv, s): scen["scenario_tree_data"][s - 1][rv - 1]
+        for s in range(1, len(scen["scenario_tree_data"]) + 1)
+        for rv in range(1, len(scen["scenario_tree_data"][s - 1]) + 1)
     }
 
     scenario_data["c"] = {
