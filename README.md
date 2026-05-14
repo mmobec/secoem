@@ -113,7 +113,7 @@ numscenfile: "numscen.txt"
 
 The scenario files in Pyomo format must be placed in the `/scenarios` directory. 
 
-The naming format is important: scenario files should follow the format `famscen-scenario_number.dat`. For example, for the family of scenarios `FTC_10_2024` (`famscen: FTC_10_2024`), the scenario files should be named `FTC_10_2024-001.dat`, `FTC_10_2024-002.dat`, etc.
+The naming format is important: scenario files should follow the format `famscen.json`. For example, for the family of scenarios `FTC_10_2024` (`famscen: FTC_10_2024`), the scenario files should be named `FTC_10_2024.json`. This json file should contain all of the days that shall be simulated.
 
 ---
 
@@ -257,7 +257,7 @@ f. `data/demand_h2/` — Directory containing hydrogen demand profiles, analogou
 
 **Scenarios:**
 
-g. `scenarios/famscen/famscen-SIM.dat` — data file containing the values of all scenarios (electricity market prices, wind and PV generation). It also contains the cluster structure to represent the scenario tree.
+g. `scenarios/famscen/famscen.json` — data file containing the values of all scenarios (electricity market prices, wind and PV generation). It also contains the cluster structure to represent the scenario tree.
 
 ### 2. Code Files
 
