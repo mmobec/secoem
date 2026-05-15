@@ -340,6 +340,6 @@ Albert Solà Vilalta: albert.sola.vilalta (at) upc.edu.
 
 This project is licensed under the EUPL v. 1.2 [LICENSE](LICENSE) file for details.
 
-### Contact
+## Contact
 
 For questions or contributions, please open an issue or contact the repository maintainers.
