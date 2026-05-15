@@ -319,9 +319,26 @@ An updated mathematical formulation in LaTeX of the optimization models is maint
 
 ---
 
-### License
+## License
 
-This project is licensed under the GNU License — see the [LICENSE](LICENSE) file for details.
+Copyright © 2026 Universitat Politècnica de Catalunya (UPC) - BarcelonaTech
+
+### Authors
+
+Andrea Ademollo: andrea.ademollo (at) unifi.it.
+
+F.-Javier Heredia: f.javier.heredia (at) upc.edu.
+
+Jan Jettmann: j.jettmann (at) estudiantat.upc.edu.
+
+Albert Solà Vilalta: albert.sola.vilalta (at) upc.edu.
+
+### Maintainers
+
+Albert Solà Vilalta: albert.sola.vilalta (at) upc.edu.
+
+
+This project is licensed under the EUPL v. 1.2 [LICENSE](LICENSE) file for details.
 
 ### Contact
 
