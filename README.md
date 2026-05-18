@@ -325,20 +325,14 @@ Copyright © 2026 Universitat Politècnica de Catalunya (UPC) - BarcelonaTech
 
 ### Authors
 
-Andrea Ademollo: andrea.ademollo (at) unifi.it.
-
-F.-Javier Heredia: f.javier.heredia (at) upc.edu.
-
-Jan Jettmann: j.jettmann (at) estudiantat.upc.edu.
-
-Albert Solà Vilalta: albert.sola.vilalta (at) upc.edu.
+Andrea Ademollo, F.-Javier Heredia, Jan Jettmann, Albert Solà Vilalta.
 
 ### Maintainers
 
 Albert Solà Vilalta: albert.sola.vilalta (at) upc.edu.
 
 
-This project is licensed under the EUPL v. 1.2 [LICENSE](LICENSE) file for details.
+This project is licensed under the EUPL v. 1.2. See the [LICENSE](LICENSE) file for details.
 
 ## Contact
 
