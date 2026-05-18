@@ -276,8 +276,10 @@ The behavior of each of the EC's components can be seen in the figure below. It 
 
 
 The distribution of the objective function components of the models over a 5 day simulation can be seen in the plot below. It is visible that the biggest contributers are the day-ahead, reserve and intraday markets. The EC mainly buys from the DA market to cover the demand. The revenue is primarily generated within the reserve market, as well as the intraday market. The remaining cost terms are comparatively small in magnitude.
-<img width="1093" height="450" alt="newplot" src="https://github.com/user-attachments/assets/058de777-e8c5-4d65-a229-174900f28754" />
+<img width="2000" height="900" alt="boxplot_obj_fun" src="https://github.com/user-attachments/assets/cd6dfd76-0b2e-4244-a4d0-cc0bef304e16" />
 
+A magnified plot shows the contribution of the hydrogen chain components:
+<img width="2000" height="900" alt="boxplot_H2_zoom" src="https://github.com/user-attachments/assets/64e8249d-1ae5-418d-b523-607cfa2e7a04" />
 
 
 
