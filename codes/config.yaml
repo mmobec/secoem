@@ -25,6 +25,6 @@ solver:
   mip_rel_gap: 0.05
   threads: 4
   time_limit: 3600
-  presolve: "off"
+  presolve: "on"
   random_seed: 2
   simplex_strategy: 1
