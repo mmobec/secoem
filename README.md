@@ -263,7 +263,12 @@ The results of running the model with the previously shown parameters are visual
 
 First of all, below is a representation of the probability distribution of some of the input parameters, namely wind and PV generation, showing the different scenarios that are taken into consideration for the bid creation.
 <img width="2754" height="1432" alt="grafik" src="https://github.com/user-attachments/assets/246b62a2-5daa-4518-b400-76ea8385f423" />
+
 <img width="2766" height="1396" alt="grafik" src="https://github.com/user-attachments/assets/be01b93f-0826-46f7-85b2-7383129c95cd" />
+
+TEST FIGURE
+
+<img width="2754" height="1432" alt="grafik" src="model_formulations/figures/wind_generation_percentiles.png" />
 
 
 Example bid curves for the day-ahead market may look like the following. The bids are in the shape of stepwise bid curves with buying and selling curves. For each hour of each simulated day, these price-quantity bid pairs are provided by the model.
