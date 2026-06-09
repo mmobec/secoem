@@ -14,7 +14,14 @@ requires-python = ">=3.10"
 license = "EUPL v1.2"
 
 authors = [
-    {name = ""}
+    {name = "Andrea Ademollo"},
+    {name = "F.-Javier Heredia"},
+    {name = "Jan Jettmann"},
+    {name = "Albert Solà Vilalta"},
+]
+
+maintainers = [
+    {name = "Albert Solà Vilalta", email = "albert.sola.vilalta@upc.edu"},
 ]
 
 dependencies = [
