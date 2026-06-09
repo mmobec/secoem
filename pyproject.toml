@@ -11,15 +11,23 @@ version = "0.1.0"
 description = "Energy Community Optimization Model"
 readme = "README.md"
 requires-python = ">=3.10"
-license = "MIT"
+license = "EUPL v1.2"
 
 authors = [
-    {name = ""}
+    {name = "Andrea Ademollo"},
+    {name = "F.-Javier Heredia"},
+    {name = "Jan Jettmann"},
+    {name = "Albert Solà Vilalta"},
+]
+
+maintainers = [
+    {name = "Albert Solà Vilalta", email = "albert.sola.vilalta (at) upc.edu"},
 ]
 
 dependencies = [
     "pyomo>=6.10",
     "PyYAML>=6.0",
+    "highspy>=1.5.0"
 ]
 
 [project.optional-dependencies]

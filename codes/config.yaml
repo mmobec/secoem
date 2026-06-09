@@ -21,11 +21,10 @@ numscenfile: "numscen.txt"
 
 # Solver options
 solver:
-  name: "gurobi"
-  MIPGap: 0.05
-  Threads: 4
-  DisplayInterval: 2
-  Presolve: 0
-  TimeLimit: 3600
-  Seed: 2
-  Method: 3
+  name: "appsi_highs"
+  mip_rel_gap: 0.05
+  threads: 4
+  time_limit: 3600
+  presolve: "on"
+  random_seed: 2
+  simplex_strategy: 1

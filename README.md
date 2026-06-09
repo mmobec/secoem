@@ -96,6 +96,19 @@ pathdem_h2: "data/demand_h2/"
 resfile: "results_log.res"
 timefileFull: "time.txt"
 numscenfile: "numscen.txt"
+
+# Solver settings
+solver:
+  name: "appsi_highs"
+  MIPGap: 0.05
+  Threads: 4
+  DisplayInterval: 2
+  Presolve: 0
+  TimeLimit: 3600
+  Seed: 2
+  simplex_strategy: 1
+
+By default, HiGHS is selected as the solver. For faster runtimes, commercial solvers such as Gurobi can be used. When changing the solver, the solver settings may need to be adapted to the new solver.
 ```
 
 ### Key parameters to adjust:
@@ -115,6 +128,20 @@ The scenario files in Pyomo format must be placed in the `/scenarios` directory.
 
 The naming format is important: scenario files should follow the format `famscen.json`. For example, for the family of scenarios `FTC_10_2024` (`famscen: FTC_10_2024`), the scenario files should be named `FTC_10_2024.json`. This json file should contain all of the days that shall be simulated.
 
+#### Scenario File Structure
+
+Each scenario file is a Pyomo-format `.dat` file encoding the stochastic scenario tree for one simulation day. It must define the following:
+
+| Parameter / Set | Description |
+|----------------|-------------|
+| `param nS` | Number of scenarios. A scenario is a complete path from the root node to a leaf node  |
+| `param nSG` | Number of stages |
+| `param nRVSG` | Number of random variables at each stage |
+| `param ScenF` | Forecasted scenarios |
+| `param ScenO` | Observed scenarios |
+| `param Scen0 (tr)` | Scenario tree. A `nS × N` matrix where each row is a scenario and each column values of one random variable |
+| `param Prob0` | Probability of every scenario (must add up to 1) |
+| `set c[sg, s]` | Scenarios in cluster `s` of stage `sg`. Lists all scenarios in the cluster |
 ---
 
 ## Running the Models
@@ -228,8 +255,34 @@ To run it, the user needs to change the `famscen` parameter in `codes/config.yam
 ```yaml
 famscen: "FTC_202407_202412_c92_sc100"
 ```
-
 and follow the same steps than in [Example 1](#example-1-ftc_2024_10).
+
+### Example Plots
+
+The results of running the model with the previously shown parameters are visualized to give an idea of the outputs of the model.
+
+First of all, below is a representation of the probability distribution of some of the input parameters, namely wind and PV generation, showing the different scenarios that are taken into consideration for the bid creation.
+<img width="2754" height="1432" alt="grafik" src="model_formulations/figures/wind_generation_percentiles.png" />
+
+<img width="2766" height="1396" alt="grafik" src="model_formulations/figures/solar_generation_percentiles.png" />
+
+
+Example bid curves for the day-ahead market may look like the following. The bids are in the shape of stepwise bid curves with buying and selling curves. For each hour of each simulated day, these price-quantity bid pairs are provided by the model.
+<img width="1600" height="900" alt="DA_None_9_None(2)" src="model_formulations/figures/example_bids.png" />
+
+The behavior of each of the EC's components can be seen in the figure below. It shows for one scenario how the EC is going to act, showing energy flows of each component. The EC procures most of it's energy demand via the day-ahead market, and uses the intraday markets to balance. It strategically uses the fuel cell, electrolyzer and battery throughout the day. The black line shows the imbalance throughout the day, which remains close to zero.
+<img width="1423" height="601" alt="ec_barplotIM1_day_005_electrolyzer" src="model_formulations/figures/EC_behaviour.png" />
+
+
+
+
+The distribution of the objective function components of the models over a 5 day simulation can be seen in the plot below. It is visible that the biggest contributers are the day-ahead, reserve and intraday markets. The EC mainly buys from the DA market to cover the demand. The revenue is primarily generated within the reserve market, as well as the intraday market. The remaining cost terms are comparatively small in magnitude.
+<img width="2000" height="900" alt="boxplot_obj_fun" src="model_formulations/figures/OF_analysis1.png" />
+
+A magnified plot shows the contribution of the hydrogen chain components:
+<img width="2000" height="900" alt="boxplot_H2_zoom" src="model_formulations/figures/OF_analysis2.png" />
+
+
 
 ---
 
@@ -292,10 +345,21 @@ An updated mathematical formulation in LaTeX of the optimization models is maint
 
 ---
 
-### License
+## License
 
-This project is licensed under the GNU License — see the [LICENSE](LICENSE) file for details.
+Copyright © 2026 Universitat Politècnica de Catalunya (UPC) - BarcelonaTech
 
-### Contact
+### Authors
+
+Andrea Ademollo, F.-Javier Heredia, Jan Jettmann, Albert Solà Vilalta.
+
+### Maintainers
+
+Albert Solà Vilalta: albert.sola.vilalta (at) upc.edu.
+
+
+This project is licensed under the EUPL v. 1.2. See the [LICENSE](LICENSE) file for details.
+
+## Contact
 
 For questions or contributions, please open an issue or contact the repository maintainers.

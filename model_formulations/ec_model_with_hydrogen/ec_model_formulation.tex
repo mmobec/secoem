@@ -32,8 +32,8 @@
 
 \setlength{\parindent}{0pt}
 
-\title{EC Model Formulation Including Hydrogen Chain}
-\author{Andrea Ademollo, Albert Sol\`a Vilalta, Carlo Carcasci, F.- Javier Heredia Cervera}
+\title{EC Model Formulation with Hydrogen Chain}
+\author{Andrea Ademollo, Albert Sol\`a Vilalta, Carlo Carcasci, F.- Javier Heredia Cervera, Jan Jettmann}
 \date{\today}
 
 
@@ -298,7 +298,7 @@ In this setting, depending on the relation between electrolyser's hydrogen press
 
 Hydrogen exported to the market is delivered at \(Pr^{\rm DEM}_{\rm H2}\) and obeys the same pressure-logic constraints, ensuring consistent handling of flows.
 
-\subsubsection{Electrolyzer}
+\subsection{Electrolyzer}
 \label{SEC:Electrolyzer}
 
 To model the electrolyzer operation with three distinct states—online (production), standby, and off—the structure proposed by \cite{johnsen2025} is adopted as a foundation, particularly in how these states are linked to reserve capacity bidding in electricity markets. The constraints on transitions between states (specifically, disallowing transitions from off to standby and vice versa), along with the modeling of cold and warm startup costs, are incorporated based on the approach detailed by \cite{Zheng2022}, which emphasizes the dynamic behavior of electrolyzer start-up processes. 
@@ -342,6 +342,7 @@ Furthermore, the representation of electrolyzer degradation follows the methodol
         Exactly one among these three initial states must be assigned 1. \\
     $\alpha^{EL}$ (\verb|alpha_EL|)
       & degradation-cost coefficient of electrolyzer [\euro{}/h]. \\
+      \\
 \end{tabularx}
 
 \noindent
@@ -496,7 +497,7 @@ A cold start (off→on) is flagged when both off at $t-1$ and on at $t$ occur
 \end{equation}
 
 
-\subsubsection{Compressor}
+\subsection{Compressor}
 \label{SEC:Compressor}
 
 \noindent
@@ -541,7 +542,7 @@ The hydrogen processed by the compressor is split into a fraction directly satis
 \end{equation}
 
 
-\subsubsection{Hydrogen Storage}
+\subsection{Hydrogen Storage}
 \label{SEC:StorageTank}
 
 \noindent
@@ -561,6 +562,7 @@ The hydrogen processed by the compressor is split into a fraction directly satis
       & initial level of hydrogen in tank. Unitless, values in [0,1]. \\
     $\LOH_T$ (\verb|LOH_fin|)
       & final level of hydrogen in tank. Unitless, values in [0,1]. \\
+     \\
 \end{tabularx}
 
 \begin{tabularx}{\textwidth}{@{}l X@{}}
@@ -622,7 +624,7 @@ The hydrogen discharged from the tank is split between the fraction used directl
 \end{equation}
 
 
-\subsubsection{Fuel Cell}
+\subsection{Fuel Cell}
 \label{SEC:FuelCell}
 
 To model the fuel cell operation we adopt the same tri‐state (on, standby, off) structure of the electrolyzer, as proposed in \cite{You2016} and \cite{Shehzad2020}, including the prohibition of direct transitions between off and standby. Startup costs are represented in energetic terms following \cite{You2016}, assigning the same energy‐based startup value to both electrolyzer and fuel cell. When converted to monetary terms via the electricity price, these align with the economic startup costs reported in \cite{Zheng2022}. Degradation costs follow the methodology of \cite{Matute2021}, but are scaled higher to reflect the greater CAPEX of fuel cells. \\ A key distinction from BESS is that, unlike batteries, the hydrogen conversion chain permits the electrolyzer and fuel cell to operate simultaneously—and even to provide reserve concurrently—as highlighted in \cite{Shehzad2020}.
@@ -656,6 +658,7 @@ To model the fuel cell operation we adopt the same tri‐state (on, standby, off
         Exactly one among these three initial states must be assigned 1. \\
     $\alpha^{FC}$ (\verb|alpha_FC|)
       & degradation-cost coefficient of fuel cell [\euro{}/h]. \\
+      \\
 \end{tabularx}
 
 \noindent
@@ -779,13 +782,13 @@ A cold start (off→on) is flagged when both off at $t-1$ and on at $t$ occur
 \end{equation}
 
 
-\subsubsection{Hydrogen Demand and Hydrogen Sold}
+\subsection{Hydrogen Demand and Hydrogen Sold}
 \label{SEC:HydrogenDemand}
 
-We assume that the hydrogen has to be delivered at a pressure of \(Pr^{\rm DEM}_{\rm H2}\) for both refueling station demand and sales. The routing logic that determines which of the three pathways (\textit{EL}, \textit{CP}, \textit{HS}) is admissible to deliver hydrogen at each time step has been detailed in \ref{SEC:HydrogenChain}.
+We assume that the hydrogen has to be delivered at a pressure of \(Pr^{\rm DEM}_{\rm H2}\) for both refueling station demand and sales. The routing logic that determines which of the three pathways (\textit{EL}, \textit{CP}, \textit{HS}) is admissible to deliver hydrogen at each time step has been detailed in Section \ref{SEC:HydrogenChain}.
 
 \noindent
-\begin{tabularx}{\textwidth}{@{}l X@{}}
+\begin{tabularx}{\textwidth}{@{}l X@{}}  
   \textbf{Parameters:} & \\
   $h^{\rm DEM}_{t}$ (\verb|HDEM|)
     & hydrogen demand at time~$t\in\mathcal{T}$ [kgH$_2$]. \\
@@ -817,7 +820,7 @@ The hydrogen produced must satisfy the refueling station demand and surplus hydr
   \quad\forall\,t\in\mathcal{T},\ \omega\in\Omega\,.
 \end{equation}
 
-\subsubsection{Model Configuration}
+\subsection{Model Configuration}
 \label{SEC:ModelConfiguration}
 
 To facilitate the implementation of the different HRS configurations we introduce two flags. $\phi$ denotes the export flag and $\chi$ denotes the pressure case flag.
@@ -960,14 +963,14 @@ We model the participation of the EC in the reserve market with a unique price-a
 %To model reserve bids, we use recourse variables only because price-accepting reserve bids do not seem to have a clear motivation. From these recourse variables, we build buying and selling bid curves a posteriori, from the results obtained at each scenario. The role of first stage variables is represented in the reserve by the binary variable indicating if the EC submitted a bid to the day-ahead market. Recall that  MIBEL market rules establish that a market participant needs to have an accepted day-ahead market bid to participate in the reserve market.
 
 \begin{tabularx}{\textwidth}{l l}
-    \textbf{Sets:} \\
+%    \textbf{Sets:} \\
 %		$\mathcal{SSR}$ (\verb|Ssr|) & $\{(t, l, j) \in \mathcal{T} \times \Omega \times \Omega \hspace{2mm} | \hspace{2mm} l \neq j, \hspace{2mm} \lambda^R_{t, l} \leq \lambda^R_{t, j}, \hspace{2mm} \exists k \in \Omega \hspace{2mm} \text{s.t.} \hspace{2mm} \# \mathcal{C}_{1, k} > 1 \hspace{2mm} \text{and} \hspace{2mm} l, j \in \mathcal{C}_{1, k} \}$.  \\
 %	& Rather technical. Used to ensure monotonicity of reserve bids \\
 %	& w.r.t. reserve price realisations. \\  
 %	& For every $t \in \mathcal{T}$ provides the scenario pairs $(l, j)$ in each DA cluster s.t. $\lambda^R_{t, l} \leq \lambda^R_{t, j}$ \\
 %	& (order is important). The use of DA clusters is due to the assumption that DA \\
 %	& prices are revealed before RM gate clousure.\\	   
-    \\
+%    \\
     \textbf{Parameters:} \\
     	$\lambda^{R}_{t, \omega}$ (\verb|lR|) & reserve market price at time $t \in \mathcal{T}$ under scenario $\omega \in \Omega$ [\euro/MWh]. \\
     	$T^R$ (\verb|TSR|) & duration of reserve response [h]. \\
@@ -1145,7 +1148,7 @@ We model the participation of the EC in intraday markets with a unique price-acc
 %To model intraday markets, we use recourse variables only. The role of first stage variables is played by the binary variables indicating whether the EC submitted a bid (buying or selling) to the day ahead market at that time.
 
 \begin{tabularx}{\textwidth}{l l}
-    \textbf{Sets:} \\
+%    \textbf{Sets:} \\
 %    	$\mathcal{SSI}$ (\verb|Ssi|) & $\{(i, t, l, j) \in \mathcal{I} \times \mathcal{T}_i \times \Omega \times \Omega \hspace{2mm} | \hspace{2mm} l \neq j, \hspace{2mm} \lambda^I_{i, t, l} \leq \lambda^I_{i, t, l}, \hspace{2mm}$ \\ 
 %	& $\exists k \in \Omega \hspace{2mm} \text{s.t.} \hspace{2mm} \# \mathcal{C}_{SG^{IM}_i - 1, k} > 1 \hspace{2mm} \text{and} \hspace{2mm} l, j \in \mathcal{C}_{1, k} \}$     \\
 %	& Rather technical. Used to ensure monotonicity of intraday market bids \\
@@ -1154,7 +1157,7 @@ We model the participation of the EC in intraday markets with a unique price-acc
 %	& cluster s.t. $\lambda^I_{i, t, l} \leq \lambda^I_{i, t, j}$ (order is important). The use of previous stage clusters is \\
 %	& due to the assumption that the parameters in that cluster are revealed \\
 %	& before IM gate clousure.\\	 
-    \\
+%    \\
     
     \textbf{Parameters:} \\
     	$\lambda^I_{i, t, \omega}$ (\verb|lI|) & intraday market $i \in \mathcal{I}$ price at time $t \in \mathcal{T}$ under scenario $\omega \in \Omega$ [\euro/MWh]. \\
@@ -1443,165 +1446,23 @@ accounts for the degradation cost of the fuel cell (only in on state).
 \label{SEC:CompleteModel}
 
 The EC optimisation problem reads:
-\begin{equation}
-  \max \quad EP
-  \label{EQ:OBJ}
-\end{equation}
-subject to:
+\begin{align*}
+\notag & \text{max} & & EP \label{EQ:OBJ} \\
+\notag & \text{s.t.} & & \eqref{EQ:FlexDemandPos}, \eqref{EQ:DailyDem}, \eqref{EQ:InterDem}, \eqref{EQ:FlexDemDisplace},  & \text{Flex. Demand} \\
+\notag & & & \eqref{dVdCPos}, \eqref{EQ:VPP_state_dV}, \eqref{EQ:VPP_state_cV}, \eqref{EQ:SOCV}, \eqref{EQ:socVOperLimits}, \eqref{EQ:SOCV_ini}, \eqref{EQ:SOCV_fin}, & \text{BESS}    \\
+\notag & & & \eqref{EQ:EL_nonnegativity}, \eqref{EQ:EL_min_power}, \eqref{EQ:EL_max_power}, \eqref{EQ:EL_conversion}, \eqref{EQ:EL_split}, \eqref{EQ:EL_SB_energy_balance}, \eqref{EQ:EL_energy_balance}, \eqref{EQ:EL_on_ini}, \eqref{EQ:EL_sb_ini}, \eqref{EQ:EL_off_ini}, \eqref{EQ:EL_one_state}, \eqref{EQ:EL_no_sb_off1}, \eqref{EQ:EL_no_sb_off2}, \eqref{EQ:EL_warm_lower}, \eqref{EQ:EL_cold_lower}, & \text{Electrolyzer}  \\
+\notag & & & \eqref{EQ:CP_nonnegativity}, \eqref{EQ:CP_power}, \eqref{EQ:CP_energy}, \eqref{EQ:CP_split}, & \text{Compressor}  \\
+\notag & & & \eqref{EQ:HS_nonnegativity}, \eqref{EQ:HS_charge}, \eqref{EQ:HS_discharge}, \eqref{EQ:HS_dynamics}, \eqref{EQ:LOHperLimits}, \eqref{EQ:HS_initial}, \eqref{EQ:HS_final}, \eqref{EQ:HS_split}, & \text{H}_2 \text{ Storage} \\
+\notag & & & \eqref{EQ:FC_nonnegativity}, \eqref{EQ:FC_min_power}, \eqref{EQ:FC_max_power}, \eqref{EQ:FC_conversion}, \eqref{EQ:FC_SB_energy_balance}, \eqref{EQ:FC_on_ini}, \eqref{EQ:FC_sb_ini}, \eqref{EQ:FC_off_ini}, \eqref{EQ:FC_one_state}, \eqref{EQ:FC_no_sb_off1}, \eqref{EQ:FC_no_sb_off2}, \eqref{EQ:FC_warm_lower}, \eqref{EQ:FC_cold_lower}, & \text{Fuel Cell} \\
+\notag & & & \eqref{EQ:H2_demand_balance}, \eqref{EQ:H2_sold_nosell}, \eqref{EQ:H2_direct_switch_EL}, \eqref{EQ:H2_direct_switch_CP}, & \text{H}_2 \text{ Demand} \\
+\notag & & & \eqref{EQ:DAVarDef}, \eqref{EQ:DA_sell_bid_LB}, \eqref{EQ:DA_buy_bid_LB}, \eqref{EQ:DA_buy_or_sell}, \eqref{EQ:DA_bid_mono_1}, \eqref{EQ:DA_bid_mono_2}, & \text{DA Market} \\
+\notag & & & \eqref{EQ:RVarDef}, \eqref{EQ:RUcomp}, \eqref{EQ:RDcomp}, \eqref{EQ:FlexDemand_UB}, \eqref{EQ:FlexDemand_LB}, \eqref{EQ:FlexDemP_DReserve}, \eqref{EQ:FlexDemP_UReserve}, \eqref{EQ:VPP_RU2s}, \eqref{EQ:VPP_RD2s}, \eqref{EQ:VPP_RU_SOCV}, \eqref{EQ:VPP_RD_SOCV}, & \text{RM Market I} \\
+\notag & & & \eqref{EQ:RM_EL_RU}, \eqref{EQ:RM_EL_RD}, \eqref{EQ:RM_EL_RD_LOH}, \eqref{EQ:RM_EL_RU_LOH}, \eqref{EQ:RM_FC_RU}, \eqref{EQ:RM_FC_RD}, \eqref{EQ:RM_FC_RU_LOH}, \eqref{EQ:RM_FC_RD_LOH}, & \text{RM Market II} \\
+\notag & & & \eqref{EQ:DM_IM_1}, \eqref{EQ:IM_bounds_3-4}, & \text{IM} \text{ Market} \\
+\notag & & & \eqref{EQ:IBVarDef}, \eqref{EQ:IBDef}, \eqref{EQ:VPP_IB_MAX}, \eqref{EQ:VPP_IB_MIN}, & \text{ Imbalances} \\
+\notag & & & \eqref{EQ:NAC_DM_RM}, \eqref{EQ:NAC_IM}, \eqref{EQ:NAC_pPIB}, \eqref{EQ:NAC_FD}, \eqref{EQ:NAC_ops}. & \text{ NAC} \\
+\end{align*}
 
-\medskip
-\noindent\textbf{Flexible Demand}
-\begin{equation*}
-  \eqref{EQ:FlexDemandPos},\quad
-  \eqref{EQ:FlexDemand_UB},\quad
-  \eqref{EQ:FlexDemand_LB},\quad
-  \eqref{EQ:DailyDem},\quad
-  \eqref{EQ:InterDem},\quad
-  \eqref{EQ:FlexDemDisplace}
-\end{equation*}
-
-\noindent\textbf{Battery Energy Storage System}
-\begin{equation*}
-  \eqref{dVdCPos},\quad
-  \eqref{EQ:VPP_state_dV},\quad
-  \eqref{EQ:VPP_state_cV},\quad
-  \eqref{EQ:SOCV},\quad
-  \eqref{EQ:socVOperLimits},\quad
-  \eqref{EQ:SOCV_ini},\quad
-  \eqref{EQ:SOCV_fin}
-\end{equation*}
-
-\noindent\textbf{Electrolyzer}
-\begin{equation*}
-  \eqref{EQ:EL_nonnegativity},\quad
-  \eqref{EQ:EL_min_power},\quad
-  \eqref{EQ:EL_max_power},\quad
-  \eqref{EQ:EL_conversion},\quad
-  \eqref{EQ:EL_split},\quad
-  \eqref{EQ:EL_SB_energy_balance},\quad
-  \eqref{EQ:EL_energy_balance}
-\end{equation*}
-\begin{equation*}
-  \eqref{EQ:EL_on_ini},\quad
-  \eqref{EQ:EL_sb_ini},\quad
-  \eqref{EQ:EL_off_ini},\quad
-  \eqref{EQ:EL_one_state},\quad
-  \eqref{EQ:EL_no_sb_off1},\quad
-  \eqref{EQ:EL_no_sb_off2},\quad
-  \eqref{EQ:EL_warm_lower},\quad
-  \eqref{EQ:EL_cold_lower}
-\end{equation*}
-
-\noindent\textbf{Compressor}
-\begin{equation*}
-  \eqref{EQ:CP_nonnegativity},\quad
-  \eqref{EQ:CP_power},\quad
-  \eqref{EQ:CP_energy},\quad
-  \eqref{EQ:CP_split}
-\end{equation*}
-
-\noindent\textbf{Hydrogen Storage}
-\begin{equation*}
-  \eqref{EQ:HS_nonnegativity},\quad
-  \eqref{EQ:HS_charge},\quad
-  \eqref{EQ:HS_discharge},\quad
-  \eqref{EQ:HS_dynamics},\quad
-  \eqref{EQ:LOHperLimits},\quad
-  \eqref{EQ:HS_initial},\quad
-  \eqref{EQ:HS_final},\quad
-  \eqref{EQ:HS_split}
-\end{equation*}
-
-\noindent\textbf{Fuel Cell}
-\begin{equation*}
-  \eqref{EQ:FC_nonnegativity},\quad
-  \eqref{EQ:FC_min_power},\quad
-  \eqref{EQ:FC_max_power},\quad
-  \eqref{EQ:FC_conversion},\quad
-  \eqref{EQ:FC_SB_energy_balance}
-\end{equation*}
-\begin{equation*}
-  \eqref{EQ:FC_on_ini},\quad
-  \eqref{EQ:FC_sb_ini},\quad
-  \eqref{EQ:FC_off_ini},\quad
-  \eqref{EQ:FC_one_state},\quad
-  \eqref{EQ:FC_no_sb_off1},\quad
-  \eqref{EQ:FC_no_sb_off2},\quad
-  \eqref{EQ:FC_warm_lower},\quad
-  \eqref{EQ:FC_cold_lower}
-\end{equation*}
-
-\noindent\textbf{Hydrogen Demand and Sales}
-\begin{equation*}
-  \eqref{EQ:H2_demand_balance},\quad
-  \eqref{EQ:H2_sold_nosell},\quad
-  \eqref{EQ:H2_direct_switch_EL},\quad
-  \eqref{EQ:H2_direct_switch_CP}
-\end{equation*}
-
-\noindent\textbf{Day-Ahead Market}
-\begin{equation*}
-  \eqref{EQ:DAVarDef},\quad
-  \eqref{EQ:DA_sell_bid_LB},\quad
-  \eqref{EQ:DA_buy_bid_LB},\quad
-  \eqref{EQ:DA_buy_or_sell},\quad
-  \eqref{EQ:DA_bid_mono_1},\quad
-  \eqref{EQ:DA_bid_mono_2}
-\end{equation*}
-
-\noindent\textbf{Reserve Market}
-\begin{equation*}
-  \eqref{EQ:RVarDef},\quad
-  \eqref{EQ:RUcomp},\quad
-  \eqref{EQ:RDcomp}
-\end{equation*}
-\begin{equation*}
-  \eqref{EQ:FlexDemand_UB},\quad
-  \eqref{EQ:FlexDemand_LB},\quad
-  \eqref{EQ:FlexDemP_DReserve},\quad
-  \eqref{EQ:FlexDemP_UReserve}
-\end{equation*}
-\begin{equation*}
-  \eqref{EQ:VPP_RU2s},\quad
-  \eqref{EQ:VPP_RD2s},\quad
-  \eqref{EQ:VPP_RU_SOCV},\quad
-  \eqref{EQ:VPP_RD_SOCV}
-\end{equation*}
-\begin{equation*}
-  \eqref{EQ:RM_EL_RU},\quad
-  \eqref{EQ:RM_EL_RD},\quad
-  \eqref{EQ:RM_EL_RD_LOH},\quad
-  \eqref{EQ:RM_EL_RU_LOH}
-\end{equation*}
-\begin{equation*}
-  \eqref{EQ:RM_FC_RU},\quad
-  \eqref{EQ:RM_FC_RD},\quad
-  \eqref{EQ:RM_FC_RU_LOH},\quad
-  \eqref{EQ:RM_FC_RD_LOH}
-\end{equation*}
-
-\noindent\textbf{Intraday Markets}
-\begin{equation*}
-  \eqref{EQ:DM_IM_1},\quad
-  \eqref{EQ:IM_bounds_3-4}
-\end{equation*}
-
-\noindent\textbf{System Imbalances}
-\begin{equation*}
-  \eqref{EQ:IBVarDef},\quad
-  \eqref{EQ:IBDef},\quad
-  \eqref{EQ:VPP_IB_MAX},\quad
-  \eqref{EQ:VPP_IB_MIN}
-\end{equation*}
-
-\noindent\textbf{Nonanticipativity Constraints}
-\begin{equation*}
-  \eqref{EQ:NAC_DM_RM},\quad
-  \eqref{EQ:NAC_IM},\quad
-  \eqref{EQ:NAC_pPIB},\quad
-  \eqref{EQ:NAC_FD},\quad
-  \eqref{EQ:NAC_ops}
-\end{equation*}
 
 %–––––––––––––––––––––––––––––––––––––––––––––––––––
 \section{Summary of Stages}

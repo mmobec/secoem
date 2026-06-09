@@ -690,9 +690,10 @@ for sim in SIMS:
 
     # SOLVER OPTIONS
     solver_cfg = cfg.get("solver", {})
-    solver = SolverFactory(solver_cfg.pop("name", "gurobi"))
+    solver = SolverFactory(solver_cfg["name"])
     for key, val in solver_cfg.items():
-        solver.options[key] = val
+        if key != "name":
+            solver.options[key] = val
 
 
     print("Solving the optimization problem...")
@@ -1247,31 +1248,31 @@ for sim in SIMS:
         obj_H2_DEM = sum(value(instance.lambda_H) * value(instance.HDEM[t])
             for t in instance.T)
         
-        obj_wat_costs = sum(value(instance.Prob[s]) * value(instance.lambda_wat) * value(instance.sp_wat_EL) *
+        obj_wat_costs = -sum(value(instance.Prob[s]) * value(instance.lambda_wat) * value(instance.sp_wat_EL) *
             value(instance.HEL[t, s])
             for t in instance.T for s in instance.S)
 
-        obj_warm_st_costs = sum(value(instance.Prob[s]) * value(instance.lambda_warm_st) * 
+        obj_warm_st_costs = -sum(value(instance.Prob[s]) * value(instance.lambda_warm_st) * 
             value(instance.P_EL_nom) * value(instance.i_EL_warm[t, s]) 
             for t in instance.T for s in instance.S)
 
-        obj_cold_st_costs = sum(value(instance.Prob[s]) * value(instance.lambda_cold_st) * 
+        obj_cold_st_costs = -sum(value(instance.Prob[s]) * value(instance.lambda_cold_st) * 
             value(instance.P_EL_nom) * value(instance.i_EL_cold[t, s]) 
             for t in instance.T for s in instance.S)
 
-        obj_deg_EL_costs = sum(value(instance.Prob[s]) * value(instance.EL_repl_cost) * 
+        obj_deg_EL_costs = -sum(value(instance.Prob[s]) * value(instance.EL_repl_cost) * 
             value(instance.P_EL_nom) / value(instance.EL_lifetime) * value(instance.iEL_on[t, s])
             for t in instance.T for s in instance.S)
         
-        obj_warm_st_costs_FC = sum(value(instance.Prob[s]) * value(instance.lambda_warm_st_FC) * 
+        obj_warm_st_costs_FC = -sum(value(instance.Prob[s]) * value(instance.lambda_warm_st_FC) * 
             value(instance.P_FC_nom) * value(instance.i_FC_warm[t, s]) 
             for t in instance.T for s in instance.S)
 
-        obj_cold_st_costs_FC = sum(value(instance.Prob[s]) * value(instance.lambda_cold_st_FC) * 
+        obj_cold_st_costs_FC = -sum(value(instance.Prob[s]) * value(instance.lambda_cold_st_FC) * 
             value(instance.P_FC_nom) * value(instance.i_FC_cold[t, s]) 
             for t in instance.T for s in instance.S)
         
-        obj_deg_FC_costs = sum(value(instance.Prob[s]) * value(instance.FC_repl_cost) * 
+        obj_deg_FC_costs = -sum(value(instance.Prob[s]) * value(instance.FC_repl_cost) * 
             value(instance.P_FC_nom) / value(instance.FC_lifetime) * value(instance.iFC_on[t, s])
             for t in instance.T for s in instance.S)
         
@@ -1281,7 +1282,7 @@ for sim in SIMS:
     
     obj_IB_net = obj_IB_income - obj_IB_costs
     
-    obj_FD_costs = sum(value(instance.Prob[s]) * value(instance.C_FD) * 
+    obj_FD_costs = -sum(value(instance.Prob[s]) * value(instance.C_FD) * 
         (value(instance.var_afd_p[t, s]) + value(instance.var_afd_m[t, s]))
         for t in instance.T for s in instance.S)
 
