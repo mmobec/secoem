@@ -523,42 +523,39 @@ for sim in SIMS:
     for (i, t, s), val in lI_dict.items():
         instance.lI[i, t, s] = val
 
-        ib_stage = scenario_data["nSG"]  # Assuming imbalance market is at the last stage
-        ib_nrvsg = sum(int(nrvsg.get(sg, 0)) for sg in range(1, int(ib_stage)))
-        nT = int(scenario_data["nT"])
-        lPIB_dict = {}
-        lNIB_dict = {}
-        for t in range(1, nT + 1):
-            for s in S_preserved:
-                lPIB_dict[(t, s)] = float(scenario_data.data()["Scen"].get((ib_nrvsg + t -1, s), 0.0))
-                lNIB_dict[(t, s)] = float(scenario_data.data()["Scen"].get((ib_nrvsg + t -1 + nT, s), 0.0))
+    ib_stage = scenario_data["nSG"]  # Assuming imbalance market is at the last stage
+    ib_nrvsg = sum(int(nrvsg.get(sg, 0)) for sg in range(1, int(ib_stage)))
+    nT = int(scenario_data["nT"])
+    lPIB_dict = {}
+    lNIB_dict = {}
+    for t in range(1, nT + 1):
+        for s in S_preserved:
+            lPIB_dict[(t, s)] = float(scenario_data.data()["Scen"].get((ib_nrvsg + t -1, s), 0.0))
+            lNIB_dict[(t, s)] = float(scenario_data.data()["Scen"].get((ib_nrvsg + t -1 + nT, s), 0.0))
 
-        for (t, s), val in lPIB_dict.items():
-            instance.lPIB[t, s] = val
-        for (t, s), val in lNIB_dict.items():
-            instance.lNIB[t, s] = val
-        #scenario_data.data()["lPIB"] = lPIB_dict
-        #scenario_data.data()["lNIB"] = lNIB_dict
-        mean_lPIB_dict = {t: sum(value(instance.Prob[s]) * lPIB_dict[(t, s)] for s in instance.S) for t in instance.T }
-        mean_lNIB_dict = {t: sum(value(instance.Prob[s]) * lNIB_dict[(t, s)] for s in instance.S) for t in instance.T }
+    for (t, s), val in lPIB_dict.items():
+        instance.lPIB[t, s] = val
+    for (t, s), val in lNIB_dict.items():
+        instance.lNIB[t, s] = val
+    #scenario_data.data()["lPIB"] = lPIB_dict
+    #scenario_data.data()["lNIB"] = lNIB_dict
+    mean_lPIB_dict = {t: sum(value(instance.Prob[s]) * lPIB_dict[(t, s)] for s in instance.S) for t in instance.T }
+    mean_lNIB_dict = {t: sum(value(instance.Prob[s]) * lNIB_dict[(t, s)] for s in instance.S) for t in instance.T }
 
-       # Store computed values in Pyomo model
-        for t, val in mean_lPIB_dict.items():
-            instance.mean_lPIB[t] = val
-        for t, val in mean_lNIB_dict.items():
-            instance.mean_lNIB[t] = val
+    # Store computed values in Pyomo model
+    for t, val in mean_lPIB_dict.items():
+        instance.mean_lPIB[t] = val
+    for t, val in mean_lNIB_dict.items():
+        instance.mean_lNIB[t] = val
 
     # Compute mean market prices (the average value across all scenarios for each hour)
     mean_lD_dict = {}
     mean_lR_dict = {}
     mean_lI_dict = {}
-    mean_lIB_dict = {}
     # Compute mean values
     for t in instance.T:
         mean_lD_dict[t]  = sum(value(instance.Prob[s]) * value(instance.lD[t, s]) for s in instance.S)
         mean_lR_dict[t]  = sum(value(instance.Prob[s]) * value(instance.lR[t, s]) for s in instance.S)
-        #mean_lIB_dict[t] = sum(value(instance.Prob[s]) * value(instance.lIB[t, s]) for s in instance.S)
-    # Compute mean values for intraday markets
     for i in instance.IM:
         for t in instance.TIM[i]:
             mean_lI_dict[i, t] = sum(value(instance.Prob[s]) * value(instance.lI[i, t, s]) for s in instance.S)
@@ -572,8 +569,6 @@ for sim in SIMS:
         instance.mean_lR[t] = val
     for (i, t), val in mean_lI_dict.items():
         instance.mean_lI[i, t] = val 
-    #for t, val in mean_lIB_dict.items():
-        #instance.mean_lIB[t] = val
         
     
     # === PRINT RESULTS ===
