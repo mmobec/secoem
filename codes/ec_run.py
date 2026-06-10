@@ -162,7 +162,7 @@ for sim in SIMS:
     #scenario_data["nRVSG"] = {row["stages"][0]: len(row["columns"]) for row in scen["mapping_datasets_columns"]}
     nrvsg = {}
     for dataset in scen["mapping_datasets_columns"]:
-        for i in dataset["stages"]:
+        for i in dataset["stage_ids"]:
             if nrvsg.get(i):
                 nrvsg[i] += 1
             else:
