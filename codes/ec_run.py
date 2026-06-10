@@ -530,8 +530,8 @@ for sim in SIMS:
     lNIB_dict = {}
     for t in range(1, nT + 1):
         for s in S_preserved:
-            lPIB_dict[(t, s)] = float(scenario_data.data()["Scen"].get((ib_nrvsg + t -1, s), 0.0))
-            lNIB_dict[(t, s)] = float(scenario_data.data()["Scen"].get((ib_nrvsg + t -1 + nT, s), 0.0))
+            lPIB_dict[(t, s)] = float(scenario_data.data()["Scen"].get((ib_nrvsg + t , s), 0.0))
+            lNIB_dict[(t, s)] = float(scenario_data.data()["Scen"].get((ib_nrvsg + t  + nT, s), 0.0))
 
     for (t, s), val in lPIB_dict.items():
         instance.lPIB[t, s] = val
