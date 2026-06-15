@@ -1,10 +1,13 @@
+# Data file names
 BESS_datfile: "ec_BESS.dat"
 wind_datfile: "ec_RES.dat"
 market_datfile: "market.dat"
 hydrogen_datfile: "ec_HYD.dat"
 
+# Run mode
 MODE: 'multiscen'
 
+# Problem definition
 PROB: ["ec"]
 probl: 'ec'
 famscen: "FTC_2024_10"
@@ -12,14 +15,16 @@ include_h2: false
 n_days: 2
 project_root: "~/secoem" 
 
+# Data paths
 pathdem: "data/demand/"
 pathdem_h2: "data/demand_h2/"
 
+# Output files
 resfile: "results_log.res"
 timefileFull: "time.txt"
 numscenfile: "numscen.txt"
 
-# Solver options
+# Solver settings
 solver:
   name: "appsi_highs"
   mip_rel_gap: 0.05

@@ -73,7 +73,7 @@ Before running the model, you must configure the `config.yaml` file located in t
 ```yaml
 # Data file names
 BESS_datfile: "ec_BESS.dat"
-wind_datfile: "ec_wind.dat"
+wind_datfile: "ec_RES.dat"
 market_datfile: "market.dat"
 hydrogen_datfile: "ec_HYD.dat"
 
@@ -84,9 +84,9 @@ MODE: 'multiscen'
 PROB: ["ec"]
 probl: 'ec'
 famscen: "FTC_2024_10"
-include_h2: true
-n_days: 1
-project_root: "~/secoem"
+include_h2: false
+n_days: 2
+project_root: "~/secoem" 
 
 # Data paths
 pathdem: "data/demand/"
@@ -100,12 +100,11 @@ numscenfile: "numscen.txt"
 # Solver settings
 solver:
   name: "appsi_highs"
-  MIPGap: 0.05
-  Threads: 4
-  DisplayInterval: 2
-  Presolve: 0
-  TimeLimit: 3600
-  Seed: 2
+  mip_rel_gap: 0.05
+  threads: 4
+  time_limit: 3600
+  presolve: "on"
+  random_seed: 2
   simplex_strategy: 1
 
 By default, HiGHS is selected as the solver. For faster runtimes, commercial solvers such as Gurobi can be used. When changing the solver, the solver settings may need to be adapted to the new solver.
@@ -126,7 +125,7 @@ By default, HiGHS is selected as the solver. For faster runtimes, commercial sol
 
 The scenario files in Pyomo format must be placed in the `/scenarios` directory. 
 
-The naming format is important: scenario files should follow the format `famscen-scenario_number.dat`. For example, for the family of scenarios `FTC_10_2024` (`famscen: FTC_10_2024`), the scenario files should be named `FTC_10_2024-001.dat`, `FTC_10_2024-002.dat`, etc.
+The naming format is important: scenario files should follow the format `famscen.json`. For example, for the family of scenarios `FTC_10_2024` (`famscen: FTC_10_2024`), the scenario files should be named `FTC_10_2024.json`. This json file should contain all of the days that shall be simulated.
 
 #### Scenario File Structure
 
@@ -247,13 +246,13 @@ python ec_run.py
 After execution, the results will be stored in the `results/FTC_2024_10` directory.
 
 
-### Example 2: `FTC_202407_202412_c93_sc100`
+### Example 2: `FTC_2024_100`
 
-This is an example with 100 scenarios and uses the scenario family `FTC_202407_202412_c92_sc100`. Running this example is significantly more computationally heavy.
+This is an example with 100 scenarios and uses the scenario family `FTC_2024_100`. Running this example is significantly more computationally heavy.
 
-To run it, the user needs to change the `famscen` parameter in `codes/config.yaml` to `FTC_202407_202412_c92_sc100`:
+To run it, the user needs to change the `famscen` parameter in `codes/config.yaml` to `FTC_2024_100`:
 ```yaml
-famscen: "FTC_202407_202412_c92_sc100"
+famscen: "FTC_2024_100"
 ```
 and follow the same steps than in [Example 1](#example-1-ftc_2024_10).
 
@@ -310,7 +309,7 @@ f. `data/demand_h2/` — Directory containing hydrogen demand profiles, analogou
 
 **Scenarios:**
 
-g. `scenarios/famscen/famscen-SIM.dat` — data file containing the values of all scenarios (electricity market prices, wind and PV generation). It also contains the cluster structure to represent the scenario tree.
+g. `scenarios/famscen/famscen.json` — data file containing the values of all scenarios (electricity market prices, wind and PV generation). It also contains the cluster structure to represent the scenario tree.
 
 ### 2. Code Files
 

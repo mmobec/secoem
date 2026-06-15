@@ -21,6 +21,7 @@ from pyomo.environ import DataPortal, value, SolverFactory
 from pathlib import Path
 import importlib
 import yaml
+import json
 # ---------------------------------------------------------------------
 # Read in configuration from 
 # ---------------------------------------------------------------------
@@ -117,7 +118,7 @@ for sim in SIMS:
     os.makedirs(os.path.join(project_root, pathmarketres), exist_ok=True)
 
     # let scenfile := famscen&"-"&sim&".dat";
-    scenfile = f"{famscen}-{sim}.dat"
+    scenfile = f"{famscen}.json"
     print(f"scenfile path = {pathscen}{scenfile}")
     print(f"pathres        = {pathres}")
 
@@ -139,7 +140,38 @@ for sim in SIMS:
         scenario_data.load(filename=os.path.join(project_root, "data", hydrogen_datfile), model=abstract_model)
 
     # Then load scenario & demand data
-    scenario_data.load(filename=os.path.join(project_root, pathscen, scenfile), model=abstract_model)
+    #scenario_data.load(filename=os.path.join(project_root, pathscen, scenfile), model=abstract_model)
+    with open(os.path.join(project_root, pathscen, scenfile)) as f:
+        scen = json.load(f)[int(sim)-1]
+    scenario_data["ScenF"] = {i+1: v for i, v in enumerate(scen["predicted_value"])}
+    scenario_data["ScenO"]  = {i+1: v for i, v in enumerate(scen["observed_value"])} if scen["observed_value"] else {}
+    #scenario_data["Scen0"]  = {i+1: v for i, v in enumerate(scen["mean_scenarios"])}
+    scenario_data["Scen0"] = {
+        (rv, s): scen["scenario_tree_data"][s - 1][rv - 1]
+        for s in range(1, len(scen["scenario_tree_data"]) + 1)
+        for rv in range(1, len(scen["scenario_tree_data"][s - 1]) + 1)
+    }
+
+    scenario_data["c"] = {
+        (entry["key"][0], entry["key"][1]): entry["scenario_ids"]
+        for entry in scen["tree"]
+    }
+    scenario_data["nS"]  = {None: scen["num_scenarios"]}   
+    scenario_data["nSG"] = {None: scen["num_stages"]} 
+    #scenario_data["nRVSG"] = {row[0]: row[1] for row in scen["nRVSG"]}
+    #scenario_data["nRVSG"] = {row["stages"][0]: len(row["columns"]) for row in scen["mapping_datasets_columns"]}
+    nrvsg = {}
+    for dataset in scen["mapping_datasets_columns"]:
+        for i in dataset["stage_ids"]:
+            if nrvsg.get(i):
+                nrvsg[i] += 1
+            else:
+                nrvsg[i] = 1
+
+    scenario_data["nRVSG"] = nrvsg
+
+
+
     scenario_data.load(filename=os.path.join(project_root, pathdem,  demfile),  model=abstract_model)
     if include_h2:
         scenario_data.load(filename=os.path.join(project_root, pathdem_h2,  demfile_h2),  model=abstract_model)
@@ -147,7 +179,8 @@ for sim in SIMS:
     
     "Before creating the instance"
     # Some Data Preprocess needed before creating the instance because these values are used to build sets in model.py, so they must be defined before creating the instance
-    Prob0_raw = scenario_data.data().get("Prob0", {})
+    #Prob0_raw = scenario_data.data().get("Prob0", {})
+    Prob0_raw =  {i+1:scen["scenario_probabilities"][i] for i in range(scen["num_scenarios"])}    # scen["scenario_probabilities"]
     Scen0_raw = scenario_data.data().get("Scen0", {})
     ScenF_raw = scenario_data.data().get("ScenF", {})
     ScenO_raw = scenario_data.data().get("ScenO", {})
@@ -252,15 +285,15 @@ for sim in SIMS:
         sigma_pW_dict[t] = math.sqrt(variance_pW)
     # Store values in Pyomo model
     for (t, s), val in pW_dict.items():
-        instance.pW[t, s] = val
+        instance.pW[t, s] = max(val, 0)
     for (t, s), val in pPV_dict.items():
-        instance.pPV[t, s] = val
+        instance.pPV[t, s] = max(val, 0)
     for t, val in mean_pW_dict.items():
-        instance.mean_pW[t] = val
+        instance.mean_pW[t] = max(val, 0)
     for t, val in mean_pPV_dict.items():
-        instance.mean_pPV[t] = val
+        instance.mean_pPV[t] = max(val, 0)
     for t, val in sigma_pW_dict.items():
-        instance.sigma_pW[t] = val   
+        instance.sigma_pW[t] = max(val, 0)   
     
     # Compute max values for wind and solar power    
     mean_pW_avg  = sum(mean_pW_dict[t] for t in instance.T) / value(instance.nT)
@@ -473,14 +506,12 @@ for sim in SIMS:
     # Compute market prices (Day-Ahead prices already defined before creating the instance)
     lR_dict = {}
     lI_dict = {}
-    lIB_dict = {}
     # Assign values to dictionaries
     for t in instance.T:
         for s in instance.S:
             # Reserve market prices
             lR_dict[t, s] = value(instance.Scen[value(instance.nT) + t, s])
-            # System imbalance prices
-            lIB_dict[t, s] = value(instance.Scen[value(instance.fRVSG[value(instance.nSG)]) + (t - 1), s])
+
     # Assign Intraday Market prices
     for i in instance.IM:
         for t in instance.TIM[i]:
@@ -491,24 +522,46 @@ for sim in SIMS:
         instance.lR[t, s] = val
     for (i, t, s), val in lI_dict.items():
         instance.lI[i, t, s] = val
-    for (t, s), val in lIB_dict.items():
-        instance.lIB[t, s] = val
+
+    ib_stage = scenario_data["nSG"]  # Assuming imbalance market is at the last stage
+    ib_nrvsg = sum(int(nrvsg.get(sg, 0)) for sg in range(1, int(ib_stage)))
+    nT = int(scenario_data["nT"])
+    lPIB_dict = {}
+    lNIB_dict = {}
+    for t in range(1, nT + 1):
+        for s in S_preserved:
+            lPIB_dict[(t, s)] = float(scenario_data.data()["Scen"].get((ib_nrvsg + t , s), 0.0))
+            lNIB_dict[(t, s)] = float(scenario_data.data()["Scen"].get((ib_nrvsg + t  + nT, s), 0.0))
+
+    for (t, s), val in lPIB_dict.items():
+        instance.lPIB[t, s] = val
+    for (t, s), val in lNIB_dict.items():
+        instance.lNIB[t, s] = val
+    #scenario_data.data()["lPIB"] = lPIB_dict
+    #scenario_data.data()["lNIB"] = lNIB_dict
+    mean_lPIB_dict = {t: sum(value(instance.Prob[s]) * lPIB_dict[(t, s)] for s in instance.S) for t in instance.T }
+    mean_lNIB_dict = {t: sum(value(instance.Prob[s]) * lNIB_dict[(t, s)] for s in instance.S) for t in instance.T }
+
+    # Store computed values in Pyomo model
+    for t, val in mean_lPIB_dict.items():
+        instance.mean_lPIB[t] = val
+    for t, val in mean_lNIB_dict.items():
+        instance.mean_lNIB[t] = val
 
     # Compute mean market prices (the average value across all scenarios for each hour)
     mean_lD_dict = {}
     mean_lR_dict = {}
     mean_lI_dict = {}
-    mean_lIB_dict = {}
     # Compute mean values
     for t in instance.T:
         mean_lD_dict[t]  = sum(value(instance.Prob[s]) * value(instance.lD[t, s]) for s in instance.S)
         mean_lR_dict[t]  = sum(value(instance.Prob[s]) * value(instance.lR[t, s]) for s in instance.S)
-        mean_lIB_dict[t] = sum(value(instance.Prob[s]) * value(instance.lIB[t, s]) for s in instance.S)
-    # Compute mean values for intraday markets
     for i in instance.IM:
         for t in instance.TIM[i]:
             mean_lI_dict[i, t] = sum(value(instance.Prob[s]) * value(instance.lI[i, t, s]) for s in instance.S)
     
+
+
     # Store values in Pyomo instance
     for t, val in mean_lD_dict.items():
         instance.mean_lD[t] = val
@@ -516,8 +569,6 @@ for sim in SIMS:
         instance.mean_lR[t] = val
     for (i, t), val in mean_lI_dict.items():
         instance.mean_lI[i, t] = val 
-    for t, val in mean_lIB_dict.items():
-        instance.mean_lIB[t] = val
         
     
     # === PRINT RESULTS ===
@@ -542,8 +593,9 @@ for sim in SIMS:
     # Compute and display mean values (the average value across all scenarios for all hours)
     mean_lD_avg  = sum(mean_lD_dict[t] for t in instance.T) / value(instance.nT)
     mean_lR_avg  = sum(mean_lR_dict[t] for t in instance.T) / value(instance.nT)
-    mean_lIB_avg = sum(mean_lIB_dict[t] for t in instance.T) / value(instance.nT)
-
+    # Compute the average values
+    mean_lPIB_avg = sum(mean_lPIB_dict[t] for t in instance.T) / value(instance.nT)
+    mean_lNIB_avg = sum(mean_lNIB_dict[t] for t in instance.T) / value(instance.nT)
     # Compute average per intraday market (per i)
     mean_lI_avg_per_market = {}
     for i in instance.IM:
@@ -560,28 +612,12 @@ for sim in SIMS:
         res_out.write("\nMean Values:\n")
         res_out.write(f"mean_lD_avg  = {mean_lD_avg:.6f}\n")
         res_out.write(f"mean_lR_avg  = {mean_lR_avg:.6f}\n")
-        res_out.write(f"mean_lIB_avg = {mean_lIB_avg:.6f}\n")
+        res_out.write(f"mean_lIB_avg = {mean_lPIB_avg:.6f}\n")
+        res_out.write(f"mean_lIB_avg = {mean_lNIB_avg:.6f}\n")
         res_out.write(f"mean_pW_avg  = {mean_pW_avg:.6f}\n")
         res_out.write(f"mean_pPV_avg  = {mean_pW_avg:.6f}\n")
     
-    # Compute positive and negative imbalance prices
-    lPIB_dict = {}
-    lNIB_dict = {}                   
-    for t in instance.T:
-        for s in instance.S:
-            lIB_val = value(instance.lIB[t, s])
-            lD_val = value(instance.lD[t, s])
-            if lIB_val <= 1:
-                lPIB_dict[(t, s)] = min(180.3, lIB_val * lD_val)
-                lNIB_dict[(t, s)] = lD_val
-            else:
-                lPIB_dict[(t, s)] = lD_val
-                lNIB_dict[(t, s)] = min(180.3, lIB_val * lD_val)
-    # Store computed values in Pyomo model
-    for (t, s), val in lPIB_dict.items():
-        instance.lPIB[t, s] = val
-    for (t, s), val in lNIB_dict.items():
-        instance.lNIB[t, s] = val
+
     
     # Compute mean values for imbalance prices
     mean_lPIB_dict = {t: sum(value(instance.Prob[s]) * lPIB_dict[(t, s)] for s in instance.S) for t in instance.T}
@@ -602,23 +638,20 @@ for sim in SIMS:
     # for t, val in mean_lNIB_dict.items():
     #     print(f"mean_lNIB[{t}] = {val}")
 
-    # Compute the average values
-    mean_lPIB_avg = sum(mean_lPIB_dict[t] for t in instance.T) / value(instance.nT)
-    mean_lNIB_avg = sum(mean_lNIB_dict[t] for t in instance.T) / value(instance.nT)
+
     
     # Print average market prices
     print("\nMean Values:")
     print(f"mean_lD_avg  = {mean_lD_avg:.6f}")
     print(f"mean_lR_avg  = {mean_lR_avg:.6f}")
-    print(f"mean_lIB_avg = {mean_lIB_avg:.6f} (used to calculate pos. and neg. imb. prices)")
+    print(f"mean_lPIB_avg  = {mean_lPIB_avg:.6f}")
+    print(f"mean_lNIB_avg  = {mean_lNIB_avg:.6f}")
     # Print average per intraday market
     for i in instance.IM:
         print(f"mean_lI_avg for IM[{i}] = {mean_lI_avg_per_market[i]:.6f}")
     # Print global average for intraday market
     print(f"mean_lI_global_avg (all IMs combined) = {mean_lI_global_avg:.6f}")
-    # Print average imbalances prices
-    print(f"mean_lPIB_avg  = {mean_lPIB_avg:.6f}")
-    print(f"mean_lNIB_avg  = {mean_lNIB_avg:.6f}")
+
     
 
     # =============================================================================
@@ -665,8 +698,7 @@ for sim in SIMS:
 
     print("Solving the optimization problem...")
     start_time = time.time()
-    
-    results = solver.solve(instance, tee=True)  # Solve and print log
+    results = solver.solve(instance, tee=True)
     end_time = time.time()
     
     solve_elapsed_time = end_time - start_time  # Compute elapsed time
@@ -1168,7 +1200,11 @@ for sim in SIMS:
         for k in instance.S:
             f.write(f"{k} ")
             for s in instance.SG0:
+                if s == 1:
+                    x=1
                 for i in instance.S0:
+                    if i == 1:
+                        x=1
                     # Find the minimum representative scenario `m` in cluster `c[s, i]`
                     cluster_members = [m for m in instance.c[s, i] if m == k]
                     if cluster_members:
