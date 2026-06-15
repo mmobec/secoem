@@ -247,13 +247,13 @@ python ec_run.py
 After execution, the results will be stored in the `results/FTC_2024_10` directory.
 
 
-### Example 2: `FTC_202407_202412_c93_sc100`
+### Example 2: `FTC_2024_100`
 
-This is an example with 100 scenarios and uses the scenario family `FTC_202407_202412_c92_sc100`. Running this example is significantly more computationally heavy.
+This is an example with 100 scenarios and uses the scenario family `FTC_2024_100`. Running this example is significantly more computationally heavy.
 
-To run it, the user needs to change the `famscen` parameter in `codes/config.yaml` to `FTC_202407_202412_c92_sc100`:
+To run it, the user needs to change the `famscen` parameter in `codes/config.yaml` to `FTC_2024_100`:
 ```yaml
-famscen: "FTC_202407_202412_c92_sc100"
+famscen: "FTC_2024_100"
 ```
 and follow the same steps than in [Example 1](#example-1-ftc_2024_10).
 
