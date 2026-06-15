@@ -73,7 +73,7 @@ Before running the model, you must configure the `config.yaml` file located in t
 ```yaml
 # Data file names
 BESS_datfile: "ec_BESS.dat"
-wind_datfile: "ec_wind.dat"
+wind_datfile: "ec_RES.dat"
 market_datfile: "market.dat"
 hydrogen_datfile: "ec_HYD.dat"
 
@@ -84,9 +84,9 @@ MODE: 'multiscen'
 PROB: ["ec"]
 probl: 'ec'
 famscen: "FTC_2024_10"
-include_h2: true
-n_days: 1
-project_root: "~/secoem"
+include_h2: false
+n_days: 2
+project_root: "~/secoem" 
 
 # Data paths
 pathdem: "data/demand/"
@@ -100,12 +100,11 @@ numscenfile: "numscen.txt"
 # Solver settings
 solver:
   name: "appsi_highs"
-  MIPGap: 0.05
-  Threads: 4
-  DisplayInterval: 2
-  Presolve: 0
-  TimeLimit: 3600
-  Seed: 2
+  mip_rel_gap: 0.05
+  threads: 4
+  time_limit: 3600
+  presolve: "on"
+  random_seed: 2
   simplex_strategy: 1
 
 By default, HiGHS is selected as the solver. For faster runtimes, commercial solvers such as Gurobi can be used. When changing the solver, the solver settings may need to be adapted to the new solver.
