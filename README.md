@@ -344,7 +344,13 @@ An updated mathematical formulation in LaTeX of the optimization models is maint
 
 ---
 
+## Acknowledgements
+
+This work has been supported with grants PID2022-139219OB-I00 and Cetp-FP-2023-00185 from the Spanish Ministerio de Ciencia, Innovación y Universidades. This research has been funded by CETPartnership, the Clean Energy Transition Partnership under the 2023 joint call for research proposals, co-funded by the European Commission (GA N°101069750) and with the funding organisations FFG (Austria), AEI (Spain) and MUR (Italy).
+
 ## License
+
+This project is licensed under the EUPL v. 1.2. See the [LICENSE](LICENSE) file for details.
 
 Copyright © 2026 Universitat Politècnica de Catalunya (UPC) - BarcelonaTech
 
@@ -356,9 +362,7 @@ Andrea Ademollo, F.-Javier Heredia, Jan Jettmann, Albert Solà Vilalta.
 
 Albert Solà Vilalta: albert.sola.vilalta (at) upc.edu.
 
-
-This project is licensed under the EUPL v. 1.2. See the [LICENSE](LICENSE) file for details.
-
 ## Contact
 
 For questions or contributions, please open an issue or contact the repository maintainers.
+
